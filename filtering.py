@@ -47,6 +47,26 @@ class FilteringTools:
         return (mask)
 
 
-    def _luminosity_filter(self,file):
+    def _luminosity_filter(self,file,m_cutoff,redshift,band):
+        
+        bands=['u','g','r','i','z','Y','J','H','K']
 
+        
+
+        abs_mag_bands=-2.5*np.log10(file.bound_subhalo.steller_luminosity.value)
+
+        #we need to apply k-correction here
+
+        #we have to decide which band to use for the apparent magnitude cutoff
+        band_index=bands.index(band)
+
+        #we need to decide the rest frame band of each galaxy with interpolation
+        #we will use interpolation to find the luminosity in the rest frame band
+        #we will use the two closest bands to the redshifted band
+        #we will use linear interpolation in magnitude space
+        
+        #then we apply the distance modulus to get the apparent magnitude
+        #m = M + 5 * log10(D_L / 10 pc)
+        #where D_L is the luminosity distance in parsecs
+        #we can use astropy to get the luminosity distance
         return mask
