@@ -250,7 +250,7 @@ class correlation_tools:
         #this is for dr   
         else:
             
-            sparse = tree.sparse_distance_matrix(tree2, max_distance=self.max_chord,
+            sparse = tree1.sparse_distance_matrix(tree2, max_distance=self.max_chord,
                                                        output_type="coo_matrix")
             dists = sparse.data
 
@@ -258,15 +258,15 @@ class correlation_tools:
 
     #Call this once to get rr distances
     def rr(self):
-        rr_chord=chord_distances_kdtree(tree1=self.tree_random)
+        rr_chord=self.chord_distances_kdtree(tree1=self.tree_random)
         if self.distance_type=='angular':
             return coordinate_tools.chord_to_angular_separation(rr_chord)
         if self.distance_type=='euclidean':
             return self.radius*rr_chord
     
     def dd(self,coordinates):
-        d_tree=tree_creation(coords=coordinates)
-        dd_chord=chord_distances_kdtree(tree1=d_tree)
+        d_tree=self.tree_creation(coords=coordinates)
+        dd_chord=self.chord_distances_kdtree(tree1=d_tree)
         if self.distance_type=='angular':
             return coordinate_tools.chord_to_angular_separation(dd_chord)
         if self.distance_type=='euclidean':
@@ -274,8 +274,8 @@ class correlation_tools:
         
     
     def dr(self, coordinates):
-        d=tree_creation(coords=coordinates)
-        dr_chord=chord_distances_kdtree(tree1=d_tree, tree2=self.tree_random)
+        d_tree=self.tree_creation(coords=coordinates)
+        dr_chord=self.chord_distances_kdtree(tree1=d_tree, tree2=self.tree_random)
         if self.distance_type=='angular':
             return coordinate_tools.chord_to_angular_separation(dr_chord)
         if self.distance_type=='euclidean':
@@ -310,8 +310,8 @@ class correlation_tools:
         n_data = coordinates.shape[0]
 
         # Histogram the distances
-        dd_counts, _ = np.histogram(dd(coordinates), bins=self.bin_array)
-        dr_counts, _ = np.histogram(dr(coordinates), bins=self.bin_array)
+        dd_counts, _ = np.histogram(self.dd(coordinates), bins=self.bin_array)
+        dr_counts, _ = np.histogram(self.dr(coordinates), bins=self.bin_array)
         
 
         
@@ -365,6 +365,8 @@ class cosmo_tools:
         self.z_drag = 1291 * self.Omh2**0.251 / (1 + 0.659 * self.Omh2**0.828) *\
          (1 + self.b1 * self.Ombh2**self.b2)
 
+        self.bao_sound_horizon=_bao_sound_horizon()
+
         #constants
         self.c_km_s = c.to('km/s').value
 
@@ -392,8 +394,22 @@ class cosmo_tools:
         integral, _ = quad(lambda zp: 1.0 / self.E(zp), 0.0, z, epsrel=1e-6)
         Dc = (self.c_km_s / self.H0) * integral
         return Dc
+    def luminosity_distance(self, z):
+        """
+        Compute luminosity distance D_L(z) in Mpc.
+        """
+        Dc = self.comoving_distance(z)
+        Dl = (1 + z) * Dc
+        return Dl
+    def angular_diameter_distance(self, z):
+        """
+        Compute angular diameter distance D_A(z) in Mpc.
+        """
+        Dc = self.comoving_distance(z)
+        Da = Dc / (1 + z)
+        return Da
 
-    def bao_sound_horizon(self):
+    def _bao_sound_horizon(self):
         """
         Compute BAO comoving sound horizon r_d at the drag epoch.
         Based on Eisenstein & Hu (1998).
@@ -407,7 +423,7 @@ class cosmo_tools:
             return self.c_km_s / np.sqrt(3.0 * (1.0 + R_of_z(zp)))
 
         def integrand(zp):
-            return c_s(zp) / (self.H0 * self.E(zp))
+            return c_s(zp) / (self.H0 *self.E(zp))
 
         r_d, _ = quad(integrand, self.z_drag, 1e7, epsrel=1e-6, limit=200)
         return r_d

@@ -96,7 +96,7 @@ for a in numbers:
     print("The comoving distance to redshift z is",comoving_distance,"Mpc")
 
     #BAO scale in Mpc
-    bao_distance=gal_cor.cosmo_tools.bao_sound_horizon()
+    bao_distance=gal_cor.cosmo_tools.bao_sound_horizon
     print("The BAO sound horizon is",bao_distance,"Mpc")
     
     #calculating comoving distance plus and minus the error so we can filter galaxies
