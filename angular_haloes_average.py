@@ -120,8 +120,12 @@ for a in numbers:
     if plus_dr < 0.5*box_size_float:
         
         complete_sphere=True
-        
-        shift_array=np.random.uniform(low=-0.5*box_size_float,high=0.5*box_size_float,
+        # we can place the observer anywhere in the box
+        # We randomly shift the coordinates periodically to get different observations
+        # in the box
+        #The observer is always at the centre of the box
+        shift_coordinates=np.random.uniform(
+            low=-0.5*box_size_float,high=0.5*box_size_float,
                             size=(n_slices,3))
         
 
@@ -198,29 +202,46 @@ for a in numbers:
         
         
         if complete_sphere:
-            
+            #observer always in the centre
             observer=centre.copy()
-            shift=shift_array[i]
+            #shifting of coordinates
+            shift=shift_coordinates[i]
             
 
         else:
             
             #always again
             observer = centre.copy()
-            
+            #shifting the observer in one of the coordinates
             observer[x_y_z_list] = shift_observer_xyz[i]
+            #no shifting of coordinates
             shift=np.array([0,0,0])
             
 
         #Maybe the next lines can be done faster but I have to think about this later!!!
         
         #Initialize the coordinate transformation class
-        spherical_transfrom = gal_cor.coordinate_tools(
+        coordinates = gal_cor.coordinate_tools(
             coordinates=d_coords,box_size=box_size_float,
         complete_sphere=complete_sphere,observer=None,shift=None)
 
         #optimized with numba
-        d_coords_sph = spherical_transfrom.to_spherical()
+        d_coords_sph = coordinates.spherical
+
+
+
+        ###########################################
+        #apply filtering to the data coordinates
+        ###########################################
+
+
+
+
+
+
+
+
+
 
         # Apply redshift shell filtering
         r_mask = (d_coords_sph[:, 0] < plus_dr) & (d_coords_sph[:, 0] > minus_dr)
