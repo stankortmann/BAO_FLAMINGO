@@ -75,7 +75,8 @@ for a in numbers:
     cosmology=metadata.cosmology
     box_size = metadata.boxsize.value
     box_size_float=float(box_size[0])
-    centre=np.array([box_size_float/2,box_size_float/2,box_size_float/2])
+    middle=box_size_float/2
+    centre=np.array([middle,middle,middle])
 
     #---random catalogue seed, to decrease noise and use same randoms
 
@@ -94,6 +95,10 @@ for a in numbers:
     #comoving distance in Mpc:
     comoving_distance=gal_cor.cosmo_tools.comoving_distance(z=redshift)
     print("The comoving distance to redshift z is",comoving_distance,"Mpc")
+
+    angular_diameter_distance=gal_cor.cosmo_tools.angular_diameter_distance(z=redshift)
+
+    luminosity_distance=gal_cor.cosmo_tools.luminosity_distance(z=redshift)
 
     #BAO scale in Mpc
     bao_distance=gal_cor.cosmo_tools.bao_sound_horizon

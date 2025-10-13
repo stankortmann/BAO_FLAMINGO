@@ -263,7 +263,7 @@ class correlation_tools:
             return coordinate_tools.chord_to_angular_separation(rr_chord)
         if self.distance_type=='euclidean':
             return self.radius*rr_chord
-    
+    #Call this every time we want dd or dr distances
     def dd(self,coordinates):
         d_tree=self.tree_creation(coords=coordinates)
         dd_chord=self.chord_distances_kdtree(tree1=d_tree)
@@ -365,7 +365,7 @@ class cosmo_tools:
         self.z_drag = 1291 * self.Omh2**0.251 / (1 + 0.659 * self.Omh2**0.828) *\
          (1 + self.b1 * self.Ombh2**self.b2)
 
-        self.bao_sound_horizon=_bao_sound_horizon()
+        self.bao_sound_horizon=self._bao_sound_horizon()
 
         #constants
         self.c_km_s = c.to('km/s').value
@@ -427,6 +427,20 @@ class cosmo_tools:
 
         r_d, _ = quad(integrand, self.z_drag, 1e7, epsrel=1e-6, limit=200)
         return r_d
+
+    def apparent_magnitude(self, absolute_magnitude, redshift):
+        """
+        Convert absolute magnitude to apparent magnitude.
+        m = M + 5 * log10(D_L / 10 pc) -5
+
+        We need the absolute magnitude in the rest frame band
+        and the luminosity distance in parsecs.
+        """
+
+        #We need to convert luminosity distance to parsecs
+        D_L = self.luminosity_distance(redshift).to('pc').value
+        m = absolute_magnitude + 5 * np.log10(D_L)  -5
+        return m
 
 
 

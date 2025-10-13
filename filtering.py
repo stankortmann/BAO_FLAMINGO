@@ -1,5 +1,6 @@
 import numpy as np
 import unyt as u
+from galaxy_correlation import cosmo_tools
 
 
 class FilteringTools:
@@ -50,23 +51,36 @@ class FilteringTools:
     def _luminosity_filter(self,file,m_cutoff,redshift,band):
         
         bands=['u','g','r','i','z','Y','J','H','K']
+        lambda_eff=[354,475,622,763,905,1031,1248,1631,2201] #in nm
+        log_lambda_eff=np.log10(lambda_eff)
 
+
+
+        #loading in luminosities in all bands
+        #we have to convert to absolute magnitudes in each band
+        M_ab_bands=-2.5*np.log10(file.bound_subhalo.steller_luminosity.value) #in AB mag
+        obs_band=band
+        log_rest_band=np.log10(obs_band/(1+redshift))
+
+        #Check if there are any zeroes in luminosity to filter out
+        M_ab_u=M_ab_bands[:,bands.index('u')]
+        zero_mask_u= (M_ab_u!=np.inf)
+        #overwrite M_ab_bands to remove zero luminosity galaxies
+        #dont forget to send the total mask including the zero_mask_u
+        M_ab_bands=M_ab_bands[zero_mask_u,:]
+
+        #Now interpolate to find the rest frame band absolute magnitude
+         # Interpolate in log-log space
+        M_ab_rest = np.interp(log_rest_band, log_lambda_eff, M_ab_bands)
+        
         
 
-        abs_mag_bands=-2.5*np.log10(file.bound_subhalo.steller_luminosity.value)
+        #calculate apparent magnitude in the selected band
+        m=cosmo_tools.apparent_magnitude(
+            absolute_magnitude=M_ab_rest,
+            z=redshift)
 
-        #we need to apply k-correction here
+        mask_m=(m<=m_cutoff)
 
-        #we have to decide which band to use for the apparent magnitude cutoff
-        band_index=bands.index(band)
-
-        #we need to decide the rest frame band of each galaxy with interpolation
-        #we will use interpolation to find the luminosity in the rest frame band
-        #we will use the two closest bands to the redshifted band
-        #we will use linear interpolation in magnitude space
-        
-        #then we apply the distance modulus to get the apparent magnitude
-        #m = M + 5 * log10(D_L / 10 pc)
-        #where D_L is the luminosity distance in parsecs
-        #we can use astropy to get the luminosity distance
-        return mask
+        #combine with zero luminosity mask to send back total mask
+        return (mask_m & zero_mask_u)
