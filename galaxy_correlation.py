@@ -87,16 +87,6 @@ class coordinate_tools:
             box_size=self.box_size, apply_periodic=self.complete_sphere
         )
 
-    def to_spherical(self):
-        """
-        calls the numba function to speed up
-        """
-        
-
-        return cartesian_to_spherical_numba(self.coordinates,self.shift,
-                                            self.observer,
-                                            box_size=self.box_size,
-                                            apply_periodic=self.complete_sphere)
 
     @staticmethod
     def theta_phi_to_unitvec(coords):
@@ -230,10 +220,10 @@ class correlation_tools:
     
     def chord_distances_kdtree(tree1,tree2=None):
                     
-    """
-    Compute pairwise distances in 3D with optional periodic boundaries.
-    Uses cKDTree for memory efficiency.
-    """
+        """
+        Compute pairwise distances in 3D with optional periodic boundaries.
+        Uses cKDTree for memory efficiency.
+        """
     
 
 
@@ -251,7 +241,7 @@ class correlation_tools:
         else:
             
             sparse = tree1.sparse_distance_matrix(tree2, max_distance=self.max_chord,
-                                                       output_type="coo_matrix")
+                                                        output_type="coo_matrix")
             dists = sparse.data
 
         return dists
@@ -338,7 +328,7 @@ class correlation_tools:
 
 
 class cosmo_tools:
-    def __init__(self, H0, Omega_m, Omega_lambda, Tcmb, Neff, Omega_b):
+    def __init__(self, H0, Omega_m, Omega_lambda, Tcmb, Neff, Omega_b, redshift,n_sigma):
         #Hubble constant
         self.H0 = H0
         self.h = self.H0 / 100.0
@@ -358,6 +348,8 @@ class cosmo_tools:
         self.Omega_r = self.Omega_gamma * (1.0 + 0.2271 * self.Neff)
         #curvature
         self.Omega_k = 1.0 - self.Omega_m - self.Omega_r - self.Omega_lambda
+        #constants
+        self.c_km_s = c.to('km/s').value
 
         # --- Drag epoch redshift ---
         self.b1 = 0.313 * self.Omh2**(-0.419) * (1 + 0.607 * self.Omh2**0.674)
@@ -365,15 +357,25 @@ class cosmo_tools:
         self.z_drag = 1291 * self.Omh2**0.251 / (1 + 0.659 * self.Omh2**0.828) *\
          (1 + self.b1 * self.Ombh2**self.b2)
 
+        #save all the importan parameters here
+        self.redshift=redshift
+        
+        self.redshift_error=self.redshift_error(n_sigma)
         self.bao_sound_horizon=self._bao_sound_horizon()
+        self.comoving_distance=self._comoving_distance(self.redshift)
+        self.plus_dr=self._comoving_distance(self.redshift+self.redshift_error)
+        self.minus_dr=self._comoving_distance(self.redshift-self.redshift_error)
+        self.delta_dr=self.plus_dr-self.minus_dr
+        
+        self.luminosity_distance=self._luminosity_distance()
+        self.angular_diameter_distance=self._angular_diameter_distance()
 
-        #constants
-        self.c_km_s = c.to('km/s').value
+        
 
 
 
     
-
+        #internal functions for distances, do not change z here!!
     def E(self, z):
         """Dimensionless Hubble parameter E(z) = H(z)/H0."""
         
@@ -384,9 +386,13 @@ class cosmo_tools:
             self.Omega_k * (1 + z)**2
         )
 
-    
+    def redshift_error(self,n):
+        #we will assume a 3 sigma redshift bin
+        #we ignore systematic errors for now
+        sigma_z=0.0005*(1+self.redshift)
+        return n*sigma_z
 
-    def comoving_distance(self, z):
+    def _comoving_distance(self,z):
         """
         Compute comoving line-of-sight distance D_C(z) in Mpc.
         """
@@ -394,19 +400,19 @@ class cosmo_tools:
         integral, _ = quad(lambda zp: 1.0 / self.E(zp), 0.0, z, epsrel=1e-6)
         Dc = (self.c_km_s / self.H0) * integral
         return Dc
-    def luminosity_distance(self, z):
+    def _luminosity_distance(self):
         """
         Compute luminosity distance D_L(z) in Mpc.
         """
-        Dc = self.comoving_distance(z)
-        Dl = (1 + z) * Dc
+        Dc = self.comoving_distance
+        Dl = (1 + self.redshift) * Dc
         return Dl
-    def angular_diameter_distance(self, z):
+    def _angular_diameter_distance(self):
         """
         Compute angular diameter distance D_A(z) in Mpc.
         """
-        Dc = self.comoving_distance(z)
-        Da = Dc / (1 + z)
+        Dc = self.comoving_distance
+        Da = Dc / (1 + self.redshift)
         return Da
 
     def _bao_sound_horizon(self):
@@ -428,19 +434,7 @@ class cosmo_tools:
         r_d, _ = quad(integrand, self.z_drag, 1e7, epsrel=1e-6, limit=200)
         return r_d
 
-    def apparent_magnitude(self, absolute_magnitude, redshift):
-        """
-        Convert absolute magnitude to apparent magnitude.
-        m = M + 5 * log10(D_L / 10 pc) -5
 
-        We need the absolute magnitude in the rest frame band
-        and the luminosity distance in parsecs.
-        """
-
-        #We need to convert luminosity distance to parsecs
-        D_L = self.luminosity_distance(redshift).to('pc').value
-        m = absolute_magnitude + 5 * np.log10(D_L)  -5
-        return m
 
 
 

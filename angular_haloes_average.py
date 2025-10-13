@@ -1,12 +1,12 @@
 from swiftsimio import load
 import numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
 import scipy.spatial as ss
 
 #now our own modules
 import galaxy_correlation as gal_cor
 import filtering as flt
+import statistics as stat
 
 
 
@@ -67,11 +67,9 @@ for a in numbers:
     d_coords=data.input_halos.halo_centre.value
     
     #loading all relevant cosmological parameters fromt snapshot
-    metadata=soap.metadata
+    metadata=data.metadata
     redshift=redshift_list[a]
     print("this snapshot is at redshift z=",str(redshift))
-    
-    dz=redshift*error
     cosmology=metadata.cosmology
     box_size = metadata.boxsize.value
     box_size_float=float(box_size[0])
@@ -83,37 +81,35 @@ for a in numbers:
     r_catalogue_seed=np.random.randint(500)
 
     #---Cosmology tools object
-    cosmo_tools=gal_cor.cosmo_tools(
+    cosmo=gal_cor.cosmo_tools(
         H0=cosmology.H0.value,
         Omega_m=cosmology.Om0,
         Omega_b=cosmology.Ob0,
         Omega_lambda=cosmology.Ode0,
         Tcmb=cosmology.Tcmb0.value,
-        Neff=cosmology.Neff
+        Neff=cosmology.Neff,
+        redshift=redshift,
+        n_sigma=3 #3 sigma redshift bin
+
     )
 
     #comoving distance in Mpc:
-    comoving_distance=gal_cor.cosmo_tools.comoving_distance(z=redshift)
+    comoving_distance=cosmo.comoving_distance
     print("The comoving distance to redshift z is",comoving_distance,"Mpc")
 
-    angular_diameter_distance=gal_cor.cosmo_tools.angular_diameter_distance(z=redshift)
-
-    luminosity_distance=gal_cor.cosmo_tools.luminosity_distance(z=redshift)
 
     #BAO scale in Mpc
-    bao_distance=gal_cor.cosmo_tools.bao_sound_horizon
+    bao_distance=cosmo.bao_sound_horizon
     print("The BAO sound horizon is",bao_distance,"Mpc")
     
     #calculating comoving distance plus and minus the error so we can filter galaxies
     # based on if their distance is within this redshift bin
-    plus_dr=gal_cor.cosmo_tools.comoving_distance(z=redshift+dz)
-    
-    minus_dr=gal_cor.cosmo_tools.comoving_distance(z=redshift-dz)
+
     
 
     #calculating the observer parameters to ultimately vary its positions
     #in respect to the box to get multiple observations of the same snapshot
-    thickness_slice=plus_dr-minus_dr
+    thickness_slice=cosmo.delta_dr
     print("The slice thickness is",thickness_slice,"Mpc")
     
     #These are the limits of the observers positions to have the same volume element between
@@ -122,7 +118,7 @@ for a in numbers:
 
 
     #In this case we can take a complete spherical cut
-    if plus_dr < 0.5*box_size_float:
+    if cosmo.plus_dr < 0.5*box_size_float:
         
         complete_sphere=True
         # we can place the observer anywhere in the box
@@ -144,9 +140,11 @@ for a in numbers:
         #no complete shell can be taken
         complete_sphere=False
         #just to be sure to be inside the box, no rounding down allowed!
-        min_x=np.ceil(plus_dr) 
-        max_angle_plus_dr=np.arcsin(box_size_float/(2*plus_dr))
-        max_x=box_size_float+minus_dr*np.cos(max_angle_plus_dr)
+
+        #extra attention here, this is not yet comletely correct
+        min_x=np.ceil(cosmo.plus_dr) 
+        max_angle_plus_dr=np.arcsin(box_size_float/(2*cosmo.plus_dr))
+        max_x=box_size_float+cosmo.minus_dr*np.cos(max_angle_plus_dr)
         
         shift_observer_xyz=np.random.uniform(
             low=min_x,high=max_x,
@@ -162,34 +160,16 @@ for a in numbers:
 
 
     # --- FILTERING --- 
-
-
-
-    # --- Mass filtration ----
-
-    #only including dark matter and gas
-    total_mass=data.spherical_overdensity_200_crit.gas_mass+\
-    data.spherical_overdensity_200_crit.dark_matter_mass
-
-    mass_cut_off=np.percentile(total_mass,mass_percentile)
-    print("The mass cut-off for the",mass_percentile,"mass percentile is",mass_cut_off)
-    mass_mask= total_mass >= mass_cut_off
-
-    d_coords= d_coords[mass_mask]
-
-    
-    
-    # --- Central filtration  ---
-        
-    if central_filtering==True:
-        d_coords= fm.galaxy_type(
-            data=d_coords,
-            sort="central"
+    filters=flt.filtering_tools(
+        soap_file=data,
+        cosmology=cosmo,    #send the instance of the cosmology class
+        central_filter=False, 
+        stellar_mass_filter=False,stellar_mass_cutoff=0,
+        luminosity_filter=True, filter_band='r' ,m_cutoff=19.8 #luminosity filter parameters
         )
-            
 
-    #we can later implement multiple slices of the same simulation
-    #x_observer>plus_dr and <box_size+minus_dr
+    d_coords=d_coords[filters.total_mask] #apply the total mask to the coordinates
+    print("The number of galaxies after filtering is",np.shape(d_coords)[0])
 
     #No we want to place an observer at a distance of comoving_distance from the
     #centre of the box in the x direction
@@ -227,30 +207,20 @@ for a in numbers:
         
         #Initialize the coordinate transformation class
         coordinates = gal_cor.coordinate_tools(
-            coordinates=d_coords,box_size=box_size_float,
-        complete_sphere=complete_sphere,observer=None,shift=None)
+            coordinates=d_coords,
+            box_size=box_size_float,
+            complete_sphere=complete_sphere,
+            observer=observer,
+            shift=shift
+            )
 
         #optimized with numba
         d_coords_sph = coordinates.spherical
 
 
-
-        ###########################################
-        #apply filtering to the data coordinates
-        ###########################################
-
-
-
-
-
-
-
-
-
-
         # Apply redshift shell filtering
-        r_mask = (d_coords_sph[:, 0] < plus_dr) & (d_coords_sph[:, 0] > minus_dr)
-        d_coords_filtered = d_coords_sph[r_mask][:, 1:]  # keep theta, phi
+    
+        d_coords_filtered = filters.radial_filter(d_coords_sph)  # keep theta, phi
 
         # Size of the filtered data aka number of galaxies in the slice
         data_size = np.shape(d_coords_filtered)[0]
@@ -264,22 +234,24 @@ for a in numbers:
         #--What is the data_size?
         print("The data size in slice",str(i+1),"is",data_size)
 
-        #-- Determining the random catalogue size, only the first time
+        #-- Determining the random catalogue size and correlation class
+        #only the first time so it is faster!
         if i==0:
             #number of randoms (oversampling)
             n_random = int(oversampling*data_size)
 
 
 
-        #### Initializing the correlation tools class
-        #Might ultimately be done outside the loop, we have to know the data size first
-        #to determine the random catalogue size
-        correlation=gal_cor.correlation_tools(
-            box_size=1000.0, radius=427.0, max_angle_plus_dr=10.0, 
-            min_distance=min_distance , max_distance=max_distance, bao_distance=bao_distance,
-            complete_sphere=complete_sphere, 
-            seed=seed_random, n_random=n_random,
-            bins=bins, distance_type='angular')
+            #### Initializing the correlation tools class
+            #Might ultimately be done outside the loop, we have to know the data size first
+            #to determine the random catalogue size
+            correlation=gal_cor.correlation_tools(
+                box_size=1000.0, radius=427.0, max_angle_plus_dr=10.0, 
+                min_distance=min_distance , max_distance=max_distance,
+                bao_distance=cosmo.bao_distance,
+                complete_sphere=complete_sphere, 
+                seed=seed_random, n_random=n_random,
+                bins=bins, distance_type='angular')
 
         hist_ls=correlation.landy_szalay(
             data_coords=d_coords_filtered)
@@ -291,53 +263,30 @@ for a in numbers:
     
     print("All the slices are done!")
     
-    # --- Average and standard deviation across slices ---
-    all_ls = np.array(all_ls)  # shape (n_slices, n_bins)
+    # --- STATISTICS ---
+    all_ls=np.array(all_ls)
+    all_data_size=np.array(all_data_size)
+    stats = stat.stat_tools(
+        all_ls=all_ls, 
+        weights=all_data_size, 
+        random_seed=12345
+        )
+
     
-    all_data_size=np.array(all_data_size) #shape (n_slice)
+    #standard weighted statistics
+    mean_ls, std_ls = stats.weighted_avg_and_std()
+
+
+    #bootstrappign
+    mean_bs, std_bs, ci_low, ci_high = stats.bootstrap_slices(
+        n_bootstrap=n_bootstrap,
+        percentiles=percentiles
+        )
+
+
+
+
     
-    mean_ls,std_ls=fm.weighted_avg_and_std(
-        values=all_ls, weights=None)
-    mean_ls_weighted,std_ls_weighted=fm.weighted_avg_and_std(
-        values=all_ls, weights=all_data_size)
-
-    bin_centers = correlation.bin_centers
-    bin_width = correlation.bin_width
-
-
-
-
-
-
-
-###################################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # --- BOOTSTRAPPING  ----
-    
-    print("We now start bootstrapping!")
-
-    ls_avg_bs, ls_std_bs, ci_low_bs, ci_high_bs = fm.bootstrap_slices(
-    all_ls=all_ls,
-    weights=all_data_size,
-    n_bootstrap=int(n_bootstrap),
-    percentiles=(low_per, high_per),
-    random_seed=np.random.randint(low=0,high=int(1e7))
-) 
-
-    print("We are done bootstrapping")
 
     # --- Save histogram to text file ---
     output_filename = "pdh_angular_avgs_"+safe_simulation+"_data_00"+b+str(int(a))+".npz"
@@ -365,12 +314,10 @@ for a in numbers:
             bao_distance=bao_distance,
             max_distance=max_distance,
 
-            #normal statistics
+            #normal statistics with weights
             ls_avg=mean_ls,
             ls_std=std_ls,
-            #weighted statistics slice sizes
-            ls_avg_weighted=mean_ls_weighted,
-            ls_std_weighted=std_ls_weighted,
+            
 
             #bootstrap statistics
             ls_avg_bs=ls_avg_bs,
