@@ -169,7 +169,8 @@ class correlation_tools:
             self.bin_array = np.linspace(0, self.max_angle, bins + 1)
         
         #already do rr  and the bin edges
-        self.rr_counts,self.bin_edges = np.histogram(self.rr, bins=self.bin_array)
+        self.rr=self.rr()
+        self.rr_counts,self.bin_edges = np.histogram(self.rr(), bins=self.bin_array)
         self.rr_normalized = self.rr_counts / (self.n_random * (self.n_random - 1) / 2)
 
         ##Bin centers for plotting
