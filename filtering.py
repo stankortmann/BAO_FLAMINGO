@@ -120,9 +120,9 @@ class filtering_tools:
     #The next two functions are actually used by the main.py files
     def radial_luminosity(self,coordinates):
 
-        __,radial_mask=radial_filter(coordinates)
+        __,radial_mask=self.radial_filter(coordinates)
 
-        luminosity_mask=_luminosity_filter(mask=radial_mask)
+        luminosity_mask=self._luminosity_filter(mask=radial_mask)
 
         full_mask = np.zeros(len(radial_mask), dtype=bool)
         full_mask[radial_mask] = luminosity_mask
@@ -130,4 +130,4 @@ class filtering_tools:
         return full_mask
     
     def luminosity_filter(self):
-        return _luminosity_filter(self.empty_mask)
+        return self._luminosity_filter(self.empty_mask)
