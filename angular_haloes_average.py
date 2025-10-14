@@ -274,7 +274,7 @@ for a in numbers:
                 bao_distance=cosmo.bao_distance,
                 complete_sphere=complete_sphere, 
                 seed=seed_random, n_random=n_random,
-                bins=bins, distance_type='angular')
+                bins=bins, distance_type='angles')
 
         hist_ls=correlation.landy_szalay(
             data_coords=d_coords_sph)
