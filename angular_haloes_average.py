@@ -49,7 +49,7 @@ n_slices = 20
 
 #maximum distance I am interested in in this project, subject to change
 min_distance=0 #Mpc
-max_distance=300 #Mpc
+max_distance=220 #Mpc
 
 #error in redshift determination
 #We will have to make this dependent on redshift later
@@ -72,6 +72,9 @@ high_per=84
 
 #histogram setup
 bins = 200
+
+#luminosity apparent magnitude cutoff
+mr=19
 
 
 for a in numbers:
@@ -184,7 +187,7 @@ for a in numbers:
         cosmology=cosmo,    #send the instance of the cosmology class
         central_filter=False, 
         stellar_mass_filter=False,stellar_mass_cutoff=0,
-        luminosity_filter=True, filter_band='r' ,m_cutoff=19.8 #luminosity filter parameters
+        luminosity_filter=True, filter_band='r' ,m_cutoff=mr #luminosity filter parameters
         )
     gc.collect()
    
@@ -192,6 +195,7 @@ for a in numbers:
     
     d_coords=data.input_halos.halo_centre.value
     luminosity_mask=filters.luminosity_filter()
+    gc.collect()
     d_coords=d_coords[luminosity_mask] #apply the total mask to the coordinates
     print("The number of galaxies after filtering is",np.shape(d_coords)[0])
 

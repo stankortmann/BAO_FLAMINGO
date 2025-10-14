@@ -234,7 +234,7 @@ class correlation_tools:
         """
 
         ### No more periodic boundaries on the unit sphere or imcomplete sphere
-        tree = ss.cKDTree(coords, boxsize=None)
+        tree = ss.cKDTree(coords, boxsize=None,leafsize=60) #optimizable?
         return tree
 
     

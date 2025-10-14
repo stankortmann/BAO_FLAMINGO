@@ -178,104 +178,93 @@ filters=flt.filtering_tools(
     )
 gc.collect()
 
-print("The filters are set up and will now be applied to the data")
-
-d_coords=data.input_halos.halo_centre.value
-d_coords=d_coords[filters.total_mask] #apply the total mask to the coordinates
-print("The number of galaxies after filtering is",np.shape(d_coords)[0])
-
-#No we want to place an observer at a distance of comoving_distance from the
-#centre of the box in the x direction
-#so the observer is at (500+comoving_distance, 500, 500)
+print("The filters are set up")
 
 
 
-all_ls = []  # store Landy-Szalay histograms
-all_data_size = [] # store data sizes of each slice
-
-for i in range(n_slices):
     
     
-    # --- Observer position ---
-    
-    
-    if complete_sphere:
-        #observer always in the centre
-        observer=centre.copy()
-        #shifting of coordinates
-        shift=shift_coordinates[i]
-        
+# --- Observer position ---
 
-    else:
-        
-        #always again
-        observer = centre.copy()
-        #shifting the observer in one of the coordinates
-        observer[x_y_z_list] = shift_observer_xyz[i]
-        #no shifting of coordinates
-        shift=np.array([0,0,0])
-        
 
-    #Maybe the next lines can be done faster but I have to think about this later!!!
-    
-    #Initialize the coordinate transformation class
-    coordinates = gal_cor.coordinate_tools(
-        coordinates=d_coords,
-        box_size=box_size_float,
-        complete_sphere=complete_sphere,
-        observer=observer,
-        shift=shift
-        )
-
-    #optimized with numba
-    d_coords_sph = coordinates.spherical
+if complete_sphere:
+    #observer always in the centre
+    observer=centre.copy()
+    #shifting of coordinates
+    shift=shift_coordinates[i]
     
 
-    # Apply redshift shell filtering and overwrite d_coords_sph for memory efficiency
-    # keep theta, phi , already done inside the class
-    d_coords_sph = filters.radial_filter(d_coords_sph) 
+else:
     
-    # Size of the filtered data aka number of galaxies in the slice
-    data_size = np.shape(d_coords_sph)[0]
+    #always again
+    observer = centre.copy()
+    #shifting the observer in one of the coordinates
+    observer[x_y_z_list] = shift_observer_xyz[i]
+    #no shifting of coordinates
+    shift=np.array([0,0,0])
     
-    if data_size < 2:
-        print("Empty slice",i,"after redshift filtering.")
-        continue  # skip empty slice, we know we did something wrong!
+
+#Maybe the next lines can be done faster but I have to think about this later!!!
+
+#Initialize the coordinate transformation class
+coordinates = gal_cor.coordinate_tools(
+    coordinates=d_coords,
+    box_size=box_size_float,
+    complete_sphere=complete_sphere,
+    observer=observer,
+    shift=shift
+    )
+
+#optimized with numba
+d_coords_sph = coordinates.spherical
+
+
+# Apply redshift shell filtering and overwrite d_coords_sph for memory efficiency
+# keep theta, phi , already done inside the class
+radial_luminosity_mask=filters.radial_luminosity(d_coords_sph)
+gc.collect()
+d_coords_sph = d_coords_sph[radial_luminosity_mask][:,1:]
+
+# Size of the filtered data aka number of galaxies in the slice
+data_size = np.shape(d_coords_sph)[0]
+
+if data_size < 2:
+    print("Empty slice",i,"after redshift filtering.")
+    continue  # skip empty slice, we know we did something wrong!
+
 
     
-        
-    #--What is the data_size?
-    print("The data size in slice",str(i+1),"is",data_size)
+#--What is the data_size?
+print("The data size is",data_size)
 
-    #-- Determining the random catalogue size and correlation class
-    #only the first time so it is faster!
-    if i==0:
-        #number of randoms (oversampling)
-        n_random = int(oversampling*data_size)
+#-- Determining the random catalogue size and correlation class
+#only the first time so it is faster!
+    #number of randoms (oversampling)
+    n_random = int(oversampling*data_size)
 
 
 
-        #### Initializing the correlation tools class
-        #Might ultimately be done outside the loop, we have to know the data size first
-        #to determine the random catalogue size
-        correlation=gal_cor.correlation_tools(
-            box_size=1000.0, radius=427.0, max_angle_plus_dr=10.0, 
-            min_distance=min_distance , max_distance=max_distance,
-            bao_distance=cosmo.bao_distance,
-            complete_sphere=complete_sphere, 
-            seed=seed_random, n_random=n_random,
-            bins=bins, distance_type='angles')
+    #### Initializing the correlation tools class
+    #Might ultimately be done outside the loop, we have to know the data size first
+    #to determine the random catalogue size
+    correlation=gal_cor.correlation_tools(
+        box_size=1000.0, radius=427.0, max_angle_plus_dr=10.0, 
+        min_distance=min_distance , max_distance=max_distance,
+        bao_distance=cosmo.bao_distance,
+        complete_sphere=complete_sphere, 
+        seed=seed_random, n_random=n_random,
+        bins=bins, distance_type='angles')
 
-    hist_ls=correlation.landy_szalay(
-        data_coords=d_coords_sph)
+hist_ls=correlation.landy_szalay(
+    data_coords=d_coords_sph)
 
-    all_ls.append(hist_ls) #appending all the hists for every slice
+all_ls.append(hist_ls) #appending all the hists for every slice
 
-    #Calculate the survey density in galaxies per square degree
-    survey_density=correlation.galaxy_density(data_size)
+#Calculate the survey density in galaxies per square degree
+survey_density=correlation.galaxy_density(data_size)
 
-    all_data_size.append(data_size)
-    print("slice number",str(i+1),"is done!!!")
+all_data_size.append(data_size)
+print("slice number",str(i+1),"is done!!!")
 
 
 print("All the slices are done!")
@@ -284,10 +273,10 @@ print("All the slices are done!")
 all_ls=np.array(all_ls)
 all_data_size=np.array(all_data_size)
 stats = stat.stat_tools(
-    all_ls=all_ls, 
-    weights=all_data_size, 
-    random_seed=12345
-    )
+all_ls=all_ls, 
+weights=all_data_size, 
+random_seed=12345
+)
 
 
 #standard weighted statistics
@@ -296,9 +285,9 @@ mean_ls, std_ls = stats.weighted_avg_and_std()
 
 #bootstrappign
 mean_bs, std_bs, ci_low, ci_high = stats.bootstrap_slices(
-    n_bootstrap=n_bootstrap,
-    percentiles=percentiles
-    )
+n_bootstrap=n_bootstrap,
+percentiles=percentiles
+)
 
 
 
@@ -311,44 +300,44 @@ output_filename = "pdh_angular_avgs_"+safe_simulation+"_data_00"+b+str(int(a))+"
 
 # Save to file
 np.savez(
-        output_filename,
-        bin_centers=correlation.bin_centers,
-        bin_width=correlation.bin_width,
-        bins=correlation.bins,
-        slices=n_slices,
-        thickness_slice=cosmo.delta_dr,
-        
-        data_sizes=all_data_size,
-        oversampling=oversampling,
-        random_size=correlation.n_randoms,
-        
+    output_filename,
+    bin_centers=correlation.bin_centers,
+    bin_width=correlation.bin_width,
+    bins=correlation.bins,
+    slices=n_slices,
+    thickness_slice=cosmo.delta_dr,
+    
+    data_sizes=all_data_size,
+    oversampling=oversampling,
+    random_size=correlation.n_randoms,
+    
 
-        min_angle=correlation.min_angle,
-        max_angle=correlation.max_angle,
-        bao_angle=correlation.bao_angle,
+    min_angle=correlation.min_angle,
+    max_angle=correlation.max_angle,
+    bao_angle=correlation.bao_angle,
 
-        bao_distance=cosmo.bao_distance,
-        max_distance=max_distance,
+    bao_distance=cosmo.bao_distance,
+    max_distance=max_distance,
 
-        #normal statistics with weights
-        ls_avg=mean_ls,
-        ls_std=std_ls,
-        
+    #normal statistics with weights
+    ls_avg=mean_ls,
+    ls_std=std_ls,
+    
 
-        #bootstrap statistics
-        ls_avg_bs=ls_avg_bs,
-        ls_std_bs=ls_std_bs,
-        
-        n_bootstrap=n_bootstrap,
-        ci_low_bs=ci_low_bs,
-        ci_high_bs=ci_high_bs,
-        low_per=low_per,
-        high_per=high_per
-
-
+    #bootstrap statistics
+    ls_avg_bs=ls_avg_bs,
+    ls_std_bs=ls_std_bs,
+    
+    n_bootstrap=n_bootstrap,
+    ci_low_bs=ci_low_bs,
+    ci_high_bs=ci_high_bs,
+    low_per=low_per,
+    high_per=high_per
 
 
-    )
+
+
+)
 
 print("Saved averaged Landy-Szalay histograms with std across slices.")
 
