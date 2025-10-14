@@ -170,7 +170,7 @@ class correlation_tools:
         
         #already do rr  and the bin edges
         self.rr=self.rr()
-        self.rr_counts,self.bin_edges = np.histogram(self.rr(), bins=self.bin_array)
+        self.rr_counts,self.bin_edges = np.histogram(self.rr, bins=self.bin_array)
         self.rr_normalized = self.rr_counts / (self.n_random * (self.n_random - 1) / 2)
 
         ##Bin centers for plotting
@@ -238,7 +238,7 @@ class correlation_tools:
         return tree
 
     
-    def chord_distances_kdtree(tree1,tree2=None):
+    def chord_distances_kdtree(self,tree1,tree2=None):
                     
         """
         Compute pairwise distances in 3D with optional periodic boundaries.
@@ -268,7 +268,7 @@ class correlation_tools:
 
     #Call this once to get rr distances
     def rr(self):
-        rr_chord=self.chord_distances_kdtree(tree1=self.tree_random)
+        rr_chord=self.chord_distances_kdtree(tree1=self.tree_random,tree2=None)
         if self.distance_type=='angular':
             return coordinate_tools.chord_to_angular_separation(rr_chord)
         if self.distance_type=='euclidean':
@@ -276,7 +276,7 @@ class correlation_tools:
     #Call this every time we want dd or dr distances
     def dd(self,coordinates):
         d_tree=self.tree_creation(coords=coordinates)
-        dd_chord=self.chord_distances_kdtree(tree1=d_tree)
+        dd_chord=self.chord_distances_kdtree(tree1=d_tree,tree2=None)
         if self.distance_type=='angular':
             return coordinate_tools.chord_to_angular_separation(dd_chord)
         if self.distance_type=='euclidean':

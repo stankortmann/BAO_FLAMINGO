@@ -98,7 +98,7 @@ cosmo=gal_cor.cosmo_tools(
     Tcmb=cosmology.Tcmb0.value,
     Neff=cosmology.Neff,
     redshift=redshift,
-    n_sigma=2 #3 sigma redshift bin
+    n_sigma=2 #n sigma redshift bin
 
 )
 print("The cosmology is set up, now metadata file can be closed")
@@ -107,7 +107,6 @@ gc.collect()
 
 
 #comoving distance in Mpc:
-comoving_distance=cosmo.comoving_distance
 print("The comoving distance to redshift z is",comoving_distance,"Mpc")
 
 
@@ -137,7 +136,7 @@ if cosmo.plus_dr < 0.5*box_size_float:
     #The observer is always at the centre of the box
     shift_coordinates=np.random.uniform(
         low=-0.5*box_size_float,high=0.5*box_size_float,
-                        size=(n_slices,3))
+                        size=(3))
     
 
     print("In this snapshot a complete spherical slice is possible!!")
@@ -158,9 +157,9 @@ else:
     
     shift_observer_xyz=np.random.uniform(
         low=min_x,high=max_x,
-        size=n_slices)
+        size=1)
     #Which coordinate to shift
-    x_y_z_list = np.random.randint(3,size=n_slices)                
+    x_y_z_list = np.random.randint(3,size=1)                
     
 
     print("In this snapshot NO complete spherical slice is possible")

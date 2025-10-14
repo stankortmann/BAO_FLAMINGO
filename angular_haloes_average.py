@@ -191,7 +191,8 @@ for a in numbers:
     print("The filters are set up and will now be applied to the data")
     
     d_coords=data.input_halos.halo_centre.value
-    d_coords=d_coords[filters.total_mask] #apply the total mask to the coordinates
+    luminosity_mask=filters.luminosity_filter()
+    d_coords=d_coords[luminosity_mask] #apply the total mask to the coordinates
     print("The number of galaxies after filtering is",np.shape(d_coords)[0])
 
     #No we want to place an observer at a distance of comoving_distance from the
@@ -242,8 +243,10 @@ for a in numbers:
         
 
         # Apply redshift shell filtering and overwrite d_coords_sph for memory efficiency
-        # keep theta, phi , already done inside the class
-        d_coords_sph = filters.radial_filter(d_coords_sph) 
+         
+        spherical_mask = filters.radial_filter(d_coords_sph)
+        d_coords_sph=d_coords_sph[spherical_mask] [:,1:]# keep theta, phi
+         
         
         # Size of the filtered data aka number of galaxies in the slice
         data_size = np.shape(d_coords_sph)[0]
