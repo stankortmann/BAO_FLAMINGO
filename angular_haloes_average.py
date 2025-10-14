@@ -2,11 +2,32 @@ from swiftsimio import load
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.spatial as ss
+import psutil
+import os
+import time
+import gc
 
 #now our own modules
 import galaxy_correlation as gal_cor
 import filtering as flt
 import statistics as stat
+import threading
+
+
+
+
+def monitor_memory(interval=30):
+    """Print memory usage every `interval` seconds."""
+    process = psutil.Process(os.getpid())
+    while True:
+        mem_gb = process.memory_info().rss / (1024 ** 3)
+        print(f"[MEMORY MONITOR] {mem_gb:.3f} GB")
+        time.sleep(interval)
+
+# Start memory monitor in background
+monitor_thread = threading.Thread(target=monitor_memory, daemon=True)
+monitor_thread.start()
+
 
 
 
@@ -18,9 +39,6 @@ safe_simulation = simulation.replace("/", "_") #for directory purposes
 soap_hbt_path= directory+simulation+"/SOAP-HBT/halo_properties_00"
 redshift_path=directory+simulation+"/output_list.txt"
 
-#only loading snapshort path to get cosmological parameters
-snapshot_path = directory+simulation+"/snapshots/flamingo_0020/flamingo_0020.hdf5"
-#snapshot = load(snapshot_path)
 
 #redshifts are listed in this file for all the snapshots in the "simulation"
 redshift_list=np.loadtxt(redshift_path, skiprows=1)
@@ -64,9 +82,9 @@ for a in numbers:
     
     data = load(soap_hbt_path+b+str(int(a))+".hdf5")
     print("this is file",str(int(a)), "loaded")
-    d_coords=data.input_halos.halo_centre.value
     
-    #loading all relevant cosmological parameters fromt snapshot
+    
+    #loading all relevant cosmological parameters from the metadata
     metadata=data.metadata
     redshift=redshift_list[a]
     print("this snapshot is at redshift z=",str(redshift))
@@ -89,18 +107,19 @@ for a in numbers:
         Tcmb=cosmology.Tcmb0.value,
         Neff=cosmology.Neff,
         redshift=redshift,
-        n_sigma=3 #3 sigma redshift bin
+        n_sigma=2 #3 sigma redshift bin
 
     )
+    print("The cosmology is set up, now metadata file can be closed")
+    del metadata
+    gc.collect()
+
 
     #comoving distance in Mpc:
     comoving_distance=cosmo.comoving_distance
     print("The comoving distance to redshift z is",comoving_distance,"Mpc")
 
 
-    #BAO scale in Mpc
-    bao_distance=cosmo.bao_sound_horizon
-    print("The BAO sound horizon is",bao_distance,"Mpc")
     
     #calculating comoving distance plus and minus the error so we can filter galaxies
     # based on if their distance is within this redshift bin
@@ -109,8 +128,8 @@ for a in numbers:
 
     #calculating the observer parameters to ultimately vary its positions
     #in respect to the box to get multiple observations of the same snapshot
-    thickness_slice=cosmo.delta_dr
-    print("The slice thickness is",thickness_slice,"Mpc")
+    
+    print("The slice thickness is",cosmo.delta_dr,"Mpc")
     
     #These are the limits of the observers positions to have the same volume element between
     #these positions
@@ -167,7 +186,11 @@ for a in numbers:
         stellar_mass_filter=False,stellar_mass_cutoff=0,
         luminosity_filter=True, filter_band='r' ,m_cutoff=19.8 #luminosity filter parameters
         )
-
+    gc.collect()
+   
+    print("The filters are set up and will now be applied to the data")
+    
+    d_coords=data.input_halos.halo_centre.value
     d_coords=d_coords[filters.total_mask] #apply the total mask to the coordinates
     print("The number of galaxies after filtering is",np.shape(d_coords)[0])
 
@@ -216,14 +239,14 @@ for a in numbers:
 
         #optimized with numba
         d_coords_sph = coordinates.spherical
+        
 
-
-        # Apply redshift shell filtering
-    
-        d_coords_filtered = filters.radial_filter(d_coords_sph)  # keep theta, phi
-
+        # Apply redshift shell filtering and overwrite d_coords_sph for memory efficiency
+        # keep theta, phi , already done inside the class
+        d_coords_sph = filters.radial_filter(d_coords_sph) 
+        
         # Size of the filtered data aka number of galaxies in the slice
-        data_size = np.shape(d_coords_filtered)[0]
+        data_size = np.shape(d_coords_sph)[0]
         
         if data_size < 2:
             print("Empty slice",i,"after redshift filtering.")
@@ -254,9 +277,13 @@ for a in numbers:
                 bins=bins, distance_type='angular')
 
         hist_ls=correlation.landy_szalay(
-            data_coords=d_coords_filtered)
+            data_coords=d_coords_sph)
 
         all_ls.append(hist_ls) #appending all the hists for every slice
+
+        #Calculate the survey density in galaxies per square degree
+        survey_density=correlation.galaxy_density(data_size)
+
         all_data_size.append(data_size)
         print("slice number",str(i+1),"is done!!!")
 
@@ -295,23 +322,22 @@ for a in numbers:
     # Save to file
     np.savez(
             output_filename,
-            bin_centers=bin_centers,
-            bin_width=bin_width,
-            bins=bins,
+            bin_centers=correlation.bin_centers,
+            bin_width=correlation.bin_width,
+            bins=correlation.bins,
             slices=n_slices,
-            thickness_slice=thickness_slice,
+            thickness_slice=cosmo.delta_dr,
             
             data_sizes=all_data_size,
             oversampling=oversampling,
-            random_size=n_randoms,
-            central_filtering=central_filtering,
-            mass_cut_off=mass_cut_off,
+            random_size=correlation.n_randoms,
+            
 
-            min_angle=min_angle,
-            max_angle=max_angle,
-            bao_angle=bao_angle,
+            min_angle=correlation.min_angle,
+            max_angle=correlation.max_angle,
+            bao_angle=correlation.bao_angle,
 
-            bao_distance=bao_distance,
+            bao_distance=cosmo.bao_distance,
             max_distance=max_distance,
 
             #normal statistics with weights
@@ -337,14 +363,6 @@ for a in numbers:
     print("Saved averaged Landy-Szalay histograms with std across slices.")
     
     print("Data saved in",output_filename)
-
-
-    
-    
-
-
-
-
 
 
 exit()

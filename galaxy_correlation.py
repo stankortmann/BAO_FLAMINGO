@@ -74,17 +74,12 @@ class coordinate_tools:
     def __init__(self,coordinates,box_size=1000,
         complete_sphere=True,observer=None,shift=None):
         
-        self.coordinates=coordinates
-        self.box_size=box_size
-        self.complete_sphere=complete_sphere
-        self.centre=np.array([box_size/2,box_size/2,box_size/2])
-        self.observer=observer
-        self.shift=shift
+        
 
         # Compute spherical coordinates immediately and store
         self.spherical = cartesian_to_spherical_numba(
-            self.coordinates, self.shift, self.observer,
-            box_size=self.box_size, apply_periodic=self.complete_sphere
+            coordinates, shift, observer,
+            box_size=box_size, apply_periodic=complete_sphere
         )
 
 
@@ -136,6 +131,7 @@ class correlation_tools:
         self.box_size = box_size
         self.complete_sphere = complete_sphere
         self.radius = radius
+        
         #only if incomplete sphere we need an angle limit for the randoms
         self.max_angle_plus_dr=None if complete_sphere else max_angle_plus_dr
 
@@ -146,7 +142,6 @@ class correlation_tools:
         
         #either euclidean distances in Mpc or angular distances in degrees
         self.distance_type = distance_type
-
 
 
         # Initialize random number generator
@@ -162,8 +157,9 @@ class correlation_tools:
         self.min_angle = coordinate_tools.chord_to_angular_separation(self.min_chord) 
         self.max_angle = coordinate_tools.chord_to_angular_separation(self.max_chord) 
         self.bao_angle = coordinate_tools.chord_to_angular_separation(self.bao_chord)
+        
 
-        self.rr_angle = coordinate_tools.chord_to_angular_separation(self.rr_chord) 
+        
 
         #--- Histogram set-up -----
         self.bins = bins
@@ -184,7 +180,30 @@ class correlation_tools:
 
         
 
-        
+    def galaxies_density(self, n_galaxies):
+        """
+        Calculate the density of galaxies per square degree.
+
+        Parameters
+        ----------
+        n_galaxies : int
+            Number of galaxies in the survey.
+
+        Returns
+        -------
+        density : float
+            Density of galaxies per square degree.
+        """
+        if self.complete_sphere:
+            area_sr = 4 * np.pi  # full sphere in steradians
+        else:
+            angle_rad= np.deg2rad(self.max_angle_plus_dr)
+            #the two pi is because we are centered around the pole
+            area_sr = 2 * angle_rad * (1 - np.cos(angle_rad))  # spherical cap area in steradians
+
+        area_sqdeg = area_sr * (180 / np.pi)**2  # convert steradians to square degrees
+        density = n_galaxies / area_sqdeg
+        return density    
         
 
     
@@ -203,7 +222,7 @@ class correlation_tools:
                                                   size=self.n_random))
         random_phi = self.rng.uniform(low=-max_phi, high=max_phi, size=self.n_random)
         random = np.column_stack((random_theta, random_phi))
-        unit_random=coordinate_tools.theta_phi_to_unitvec(self.random)
+        unit_random=coordinate_tools.theta_phi_to_unitvec(random)
         return unit_random
     
     
@@ -361,7 +380,7 @@ class cosmo_tools:
         self.redshift=redshift
         
         self.redshift_error=self.redshift_error(n_sigma)
-        self.bao_sound_horizon=self._bao_sound_horizon()
+        self.bao_distance=self._bao_sound_horizon()
         self.comoving_distance=self._comoving_distance(self.redshift)
         self.plus_dr=self._comoving_distance(self.redshift+self.redshift_error)
         self.minus_dr=self._comoving_distance(self.redshift-self.redshift_error)

@@ -2,93 +2,111 @@ import numpy as np
 import matplotlib.pyplot as plt
 import formulae as fm
 
-# --- Parameters ---
-# Change this to the filename you want to plot
-simulation="L2800N5040/HYDRO_FIDUCIAL"
-safe_simulation = simulation.replace("/", "_") #for directory purposes
-redshift=73
-sim_name=safe_simulation+"_data_00"+str(redshift)
+# ============================================================
+# --- CONFIGURATION ---
+# ============================================================
 
-angular=False
-if angular==True:
-    ang="_angular_"
-else:
-    ang="_"
-filename_histogram = "pdh"+ang+"avgs_"+sim_name+".npz"  # your saved .npz file
+# Simulation parameters
+simulation = "L2800N5040/HYDRO_FIDUCIAL"
+redshift = 73
 
-# --- Load the saved data ---
-data = np.load(filename_histogram)
+# Plot settings
+angular = False
 
-bin_centers = data['bin_centers']
-bao_angle=data['bao_distance']
-ls_avg=data['ls_avg'][0] #bootstrapping now used
-#ls_std=data['ls_std_bs']
+show_fit = False         # whether to fit & plot smooth models
+save_plot = True         # whether to save the figure as PNG
 
-ls_std_plot=None
+# ============================================================
+# --- FILENAME SETUP ---
+# ============================================================
+
+safe_simulation = simulation.replace("/", "_")
+sim_name = f"{safe_simulation}_data_00{redshift}"
+
+ang_suffix = "_angular_" if angular else "_"
+filename_histogram = f"pdh{ang_suffix}avgs_{sim_name}.npz"
+
+# PNG file name for output
+png_filename = filename_histogram.replace(".npz", "_plot.png")
+
+# ============================================================
+# --- LOAD DATA ---
+# ============================================================
+
+try:
+    data = np.load(filename_histogram)
+except FileNotFoundError:
+    raise FileNotFoundError(f"File not found: {filename_histogram}")
+
+bin_centers = data["bin_centers"]
+bao_angle = data["bao_distance"]
+ls_avg = data["ls_avg"][0]  # first bootstrap sample
+
+# Optional: standard deviation if needed
+# ls_std = data["ls_std_bs"]
+
+# ============================================================
+# --- SELECT DATA BASED ON ANGLE / SEPARATION RANGE ---
+# ============================================================
+
+# Define your range
+angle_min, angle_max = 2.0, 4.0  # degrees (or Mpc if angular=False)
+
+# Create a boolean mask for the range
+mask = (bin_centers >= angle_min) & (bin_centers <= angle_max)
+
+# Apply mask to your arrays
+bin_centers_plot = bin_centers[mask]
+ls_avg_plot = ls_avg[mask]
+# ls_std_plot = ls_std[mask]  # if using std
 
 
+# ============================================================
+# --- PLOTTING ---
+# ============================================================
 
-# --- Plotting ---
 plt.figure(figsize=(8, 6))
-begin=0
-end=700
-print(ls_avg)
-ls_avg_plot=ls_avg[begin:end]
-bin_centers_plot=bin_centers[begin:end]
-#ls_std_plot=ls_std[begin:end]
 
-"""
-plt.errorbar(bin_centers_plot, ls_avg_plot,
-yerr=ls_std_plot, label="Landy-Szalay data",
-   alpha=0.7,ecolor='r')
+# Main correlation function
+plt.plot(bin_centers_plot, ls_avg_plot, label="Landy–Szalay", lw=1.8)
 
-"""
-plt.plot(bin_centers_plot,ls_avg_plot)
+# Optional error bars (uncomment if you have std)
+# plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,
+#              label="Landy–Szalay (error)", alpha=0.7, ecolor="r", fmt="o")
 
-"""
+# Vertical line marking the BAO angle
+plt.axvline(bao_angle, color="g", linestyle="--", label=f"BAO angle = {bao_angle:.2f}")
 
+# ============================================================
+# --- OPTIONAL FITTING ---
+# ============================================================
 
-# --- Fitting the data 
+if show_fit:
+    w_power, w_poly = fm.fit_smooth_correlation(
+        bin_centers, ls_avg, theta_min=None, theta_max=80
+    )
 
-w_power,w_poly = fm.fit_smooth_correlation(
-    bin_centers,ls_avg,theta_min=None, theta_max=80)
+    # Compute residuals for inspection
+    diff_power = ls_avg - w_power
+    diff_poly = ls_avg - w_poly
 
+    # Plot fits and residuals
+    plt.plot(bin_centers_plot, w_power[r_min:r_max], label="Power-law fit", color="black")
+    plt.plot(bin_centers_plot, diff_power[r_min:r_max], label="Data - Smooth", color="orange")
 
-#see if we want to return the fitted parameters later
-#print("Fitted A =", A_fit, "gamma =", gamma_fit)
+# ============================================================
+# --- LABELS & SAVE ---
+# ============================================================
 
-diff_power=ls_avg-w_power
-diff_power_plot=diff_power[begin:end]
-w_power_plot=w_power[begin:end]
-
-diff_poly=ls_avg-w_poly
-diff_poly_plot=diff_poly[begin:end]
-w_poly_plot=w_poly[begin:end]
-
-#plt.plot(bin_centers_plot,w_power_plot,label="Power fit",color="black")
-
-#plt.plot(bin_centers_plot,diff_power_plot,label="data-smooth",color="yellow")
-
-"""
-
-#plotting the bao_angle in the plot
-plt.vlines(bao_angle,ymin=np.min(ls_avg_plot),
-         ymax=np.max(ls_avg_plot),colors="g")
-
-
-
-plt.xlabel("Angle (degrees)")
+plt.xlabel("Angle (degrees)" if angular else "Separation (Mpc)")
 plt.ylabel("Correlation")
+plt.title(sim_name)
 plt.legend()
+plt.grid(alpha=0.3)
 
+if save_plot:
+    plt.tight_layout()
+    plt.savefig(png_filename, dpi=300)
+    print(f"✅ Plot saved as '{png_filename}'")
 
-plt.title(f"{sim_name}")
-
-# --- Save plot as a separate .png file ---
-png_filename = filename_histogram.replace('.npz', '_plot.png')
-plt.savefig(png_filename)
 plt.show()
-
-print(f"Plot saved as '{png_filename}'")
-
-exit()

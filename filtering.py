@@ -12,7 +12,7 @@ class filtering_tools:
         
         
         #saving cosmology instance
-        self.cosmology=cosmology
+        self.cosmo=cosmology
         
         #stellar mass filter parameters
         self.stellar_mass_cutoff=stellar_mass_cutoff
@@ -39,7 +39,7 @@ class filtering_tools:
     def radial_filter(self,coordinates):
        
         r = coordinates[:, 0]
-        mask = (r >= self.cosmo.plus_dr) & (r <= self.cosmo.minus_dr)
+        mask = (r >= self.cosmo.minus_dr) & (r <= self.cosmo.plus_dr)
         #only send back theta and phi
         return coordinates[mask][:, 1:]
 
@@ -50,8 +50,8 @@ class filtering_tools:
 
     
     def _stellar_mass_filter(self,file):
-        stellar_mass=self.file.bound_subhalo.stellar_mass
-        mask=stellar_mass>=cutoff
+        stellar_mass=file.bound_subhalo.stellar_mass
+        mask= (stellar_mass>=stellar_mass_cutoff)
         return (mask)
 
 
@@ -62,21 +62,20 @@ class filtering_tools:
         lambda_eff=[354,475,622,763,905,1031,1248,1631,2201] #in nm
         log_lambda_eff=np.log10(lambda_eff)
 
+        lum = file.bound_subhalo.stellar_luminosity.value  # shape (N_gal, N_bands)
 
+        # Filter out galaxies with any zero luminosity (or just in the u-band)
+        nonzero_mask = lum[:, bands.index('u')] != 0
+        lum = lum[nonzero_mask, :]
 
         #loading in luminosities in all bands
         #we have to convert to absolute magnitudes in each band
-        M_ab_bands=-2.5*np.log10(file.bound_subhalo.stellar_luminosity.value) #in AB mag
+        M_ab_bands=-2.5*np.log10(lum) #in AB mag
         
         #calculate rest frame band from input band and redshift
-        log_rest_band=np.log10(lambda_eff[bands.index(self.filter_band)]/(1+self.redshift))
+        log_rest_band=np.log10(lambda_eff[bands.index(self.filter_band)]/(1+self.cosmo.redshift))
 
-        #Check if there are any zeroes in luminosity to filter out, use r band for this
-        M_ab_u=M_ab_bands[:,bands.index('u')]
-        zero_mask_u= (M_ab_u!=np.inf)
-        #overwrite M_ab_bands to remove zero luminosity galaxies
-        #dont forget to send the total mask including the zero_mask_u
-        M_ab_bands=M_ab_bands[zero_mask_u,:]
+        
 
         #Now interpolate to find the rest frame band absolute magnitude
          # Interpolate in log-log space
@@ -96,10 +95,23 @@ class filtering_tools:
 
 
         #calculate apparent magnitude in the selected band
-        D_L = self.cosmology.luminosity_distance.to('pc').value
-        m = absolute_magnitude + 5 * np.log10(D_L)  -5
+        D_L = self.cosmo.luminosity_distance *1e6 # convert Mpc → pc
+        m = M_ab_rest + 5 * np.log10(D_L)  -5
 
         mask_m=(m<=self.m_cutoff)
 
+
+        # Map back to full catalog length
         #combine with zero luminosity mask to send back total mask
-        return (mask_m & zero_mask_u)
+        full_mask = np.zeros(len(nonzero_mask), dtype=bool)
+        full_mask[nonzero_mask] = mask_m
+        
+        pass_fraction = np.count_nonzero(full_mask) / full_mask.size * 100
+        print(f"Pass percentage after luminosity filter: {pass_fraction:.2f}%")
+
+
+
+        #memory clean up of large arrays
+        del lum,M_ab_bands, m, M_ab_rest
+        
+        return full_mask 
