@@ -51,10 +51,6 @@ n_slices = 20
 min_distance=0 #Mpc
 max_distance=220 #Mpc
 
-#error in redshift determination
-#We will have to make this dependent on redshift later
-error=0.001
-
 #oversampling factor of the random catalogue created and rng seed
 seed_random=12345
 oversampling=5
@@ -99,7 +95,7 @@ for a in numbers:
 
     #---random catalogue seed, to decrease noise and use same randoms
 
-    r_catalogue_seed=np.random.randint(500)
+    r_catalogue_seed=6000
 
     #---Cosmology tools object
     cosmo=gal_cor.cosmo_tools(
