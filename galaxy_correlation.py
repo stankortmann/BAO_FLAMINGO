@@ -4,6 +4,7 @@ from scipy.integrate import quad
 from astropy.constants import c
 from scipy.optimize import curve_fit
 from numba import njit, prange
+import treecorr
 
 
 
@@ -123,7 +124,8 @@ class coordinate_tools:
 class correlation_tools:
     def __init__(self, box_size=1000.0, radius=427.0, max_angle_plus_dr=10.0, 
                  min_distance=0 , max_distance=250, bao_distance=150.0,
-                 complete_sphere=False, 
+                 complete_sphere=False,
+                 leafsize=50, 
                  seed=12345, n_random=50000,
                  bins=100, distance_type='euclidean'):
         
@@ -143,6 +145,8 @@ class correlation_tools:
         #either euclidean distances in Mpc or angular distances in degrees
         self.distance_type = distance_type
 
+        #The leafsize of the tree
+        self.leafsize=leafsize
 
         # Initialize random number generator
         self.rng = np.random.default_rng(seed)
@@ -150,7 +154,7 @@ class correlation_tools:
         # Generate random catalog
         self.n_random = n_random
         self.unit_random = self._generate_random_catalog()
-        self.tree_random = ss.cKDTree(self.unit_random, boxsize=None)
+        self.tree_random = self.tree_creation(self.unit_random)
         
 
         #angles if necesarry
@@ -165,7 +169,7 @@ class correlation_tools:
         self.bins = bins
         if self.distance_type=='euclidean':
             self.bin_array = np.linspace(min_distance, max_distance, bins + 1)
-        if self.distance_type=='angles':
+        if self.distance_type=='angular':
             self.bin_array = np.linspace(0, self.max_angle, bins + 1)
         
         #already do rr  and the bin edges
@@ -181,7 +185,7 @@ class correlation_tools:
 
         
 
-    def galaxies_density(self, n_galaxies):
+    def galaxy_density(self, n_galaxies):
         """
         Calculate the density of galaxies per square degree.
 
@@ -228,13 +232,13 @@ class correlation_tools:
     
     
     
-    def tree_creation(coords):
+    def tree_creation(self,coords):
         """
         Create a cKDTree from given coordinates.
         """
 
         ### No more periodic boundaries on the unit sphere or imcomplete sphere
-        tree = ss.cKDTree(coords, boxsize=None,leafsize=100) #optimizable?
+        tree = ss.cKDTree(coords, boxsize=None,leafsize=self.leafsize) #optimizable?
         return tree
 
     
@@ -318,10 +322,11 @@ class correlation_tools:
         """
         
         n_data = coordinates.shape[0]
+        unit_coordinates=coordinate_tools.theta_phi_to_unitvec(coordinates)
 
         # Histogram the distances
-        dd_counts, _ = np.histogram(self.dd(coordinates), bins=self.bin_array)
-        dr_counts, _ = np.histogram(self.dr(coordinates), bins=self.bin_array)
+        dd_counts, _ = np.histogram(self.dd(unit_coordinates), bins=self.bin_array)
+        dr_counts, _ = np.histogram(self.dr(unit_coordinates), bins=self.bin_array)
         
 
         
@@ -347,112 +352,178 @@ class correlation_tools:
         return w
 
 
-class cosmo_tools:
-    def __init__(self, H0, Omega_m, Omega_lambda, Tcmb, Neff, Omega_b, redshift,n_sigma):
-        #Hubble constant
-        self.H0 = H0
-        self.h = self.H0 / 100.0
-        #total matter
-        self.Omega_m = Omega_m
-        self.Omh2 = self.Omega_m * self.h**2
-        #baryons
-        self.Omega_b = Omega_b
-        self.Ombh2 = self.Omega_b * self.h**2
-        #dark energy
-        self.Omega_lambda = Omega_lambda
-        #cmb
-        self.Tcmb = Tcmb
-        self.Neff = Neff
-        #radiation
-        self.Omega_gamma=2.472e-5 * (self.Tcmb / 2.7255)**4 /(self.h)**2
-        self.Omega_r = self.Omega_gamma * (1.0 + 0.2271 * self.Neff)
-        #curvature
-        self.Omega_k = 1.0 - self.Omega_m - self.Omega_r - self.Omega_lambda
-        #constants
-        self.c_km_s = c.to('km/s').value
-
-        # --- Drag epoch redshift ---
-        self.b1 = 0.313 * self.Omh2**(-0.419) * (1 + 0.607 * self.Omh2**0.674)
-        self.b2 = 0.238 * self.Omh2**0.223
-        self.z_drag = 1291 * self.Omh2**0.251 / (1 + 0.659 * self.Omh2**0.828) *\
-         (1 + self.b1 * self.Ombh2**self.b2)
-
-        #save all the importan parameters here
-        self.redshift=redshift
+class correlation_tools_treecorr:
+    def __init__(self, cosmology,
+                 min_distance=0, max_distance=250, n_random=50000,
+                 max_angle=0.1, complete_sphere=True,
+                 bins=100, distance_type='euclidean', seed=12345):
         
-        self.redshift_error=self.redshift_error(n_sigma)
-        self.bao_distance=self._bao_sound_horizon()
-        self.comoving_distance=self._comoving_distance(self.redshift)
-        self.plus_dr=self._comoving_distance(self.redshift+self.redshift_error)
-        self.minus_dr=self._comoving_distance(self.redshift-self.redshift_error)
-        self.delta_dr=self.plus_dr-self.minus_dr
+        self.n_random = n_random
+        self.bins = bins
+        self.distance_type = distance_type
+        self.seed = seed
+        self.complete_sphere=complete_sphere
+        #all the relevant geometric information
+        self.radius=cosmology.comoving_distance
+        self.max_angle_incomplete=max_angle
+        self.min_chord=min_distance/self.radius
+        self.max_chord=max_distance/self.radius
+        self.bao_chord=cosmology.bao_distance/self.radius
+        self.bao_angle=coordinate_tools.chord_to_angular_separation(self.bao_chord)
+        self.bins=bins
         
-        self.luminosity_distance=self._luminosity_distance()
-        self.angular_diameter_distance=self._angular_diameter_distance()
-
+        
+        
+        # define bin edges and nn objects for the treecorrelation
+        if distance_type == 'euclidean':
+            self.bin_edges = np.linspace(min_distance,max_distance,self.bins+1)
+            self.nn = treecorr.NNCorrelation(
+            min_sep=self.min_chord,
+            max_sep=self.max_chord,
+            nbins=self.bins,
+            sep_units='Mpc',
+            bin_type='Linear'
+            )
+        elif distance_type == 'angular':
+            self.min_angle=coordinate_tools.chord_to_angular_separation(min_chord)
+            self.max_angle=coordinate_tools.chord_to_angular_separation(max_chord)
+            self.bin_edges=np.linspace(self.min_angle,self.max_angle,self.bins+1)
+            self.nn = treecorr.NNCorrelation(
+            min_sep=self.min_angle,
+            max_sep=self.max_angle,
+            nbins=self.bins,
+            sep_units='Degrees',
+            bin_type='Linear'
+            )
+        else:
+            raise ValueError("distance_type must be 'euclidean' or 'angular'")
+        
+        
         
 
+        # bin centers for plotting
+        self.bin_centers = 0.5 * (self.bin_edges[:-1] + self.bin_edges[1:])
+        self.bin_size = self.bin_edges[1]-self.bin_edges[0]
 
+        # generate random catalog
+        self.rng = np.random.default_rng(seed)
+        self.randoms=self._generate_random()
+        self.cat_random = self._catalog(self.randoms)
+        
+        # Precompute RR once
+        self.rr_norm = self._rr() / (self.n_random * (self.n_random-1)/2)
+        
+
+    def galaxy_density(self, n_galaxies):
+        """
+        Calculate the density of galaxies per square degree.
+
+        Parameters
+        ----------
+        n_galaxies : int
+            Number of galaxies in the survey.
+
+        Returns
+        -------
+        density : float
+            Density of galaxies per square degree.
+        """
+        if self.complete_sphere:
+            area_sr = 4 * np.pi  # full sphere in steradians
+        else:
+            
+            #the two pi is because we are centered around the pole
+            # spherical cap area in steradians
+            area_sr = 2 * self.max_angle * (1 - np.cos(self.max_angle))  
+
+        area_sqdeg = area_sr * (180 / np.pi)**2  # convert steradians to square degrees
+        density = n_galaxies / area_sqdeg
+        return density     
+
+    #-----------------------
+    # Random catalog
+    #-----------------------
+    def _generate_random(self):
+        """Generate random points in spherical coordinates."""
+        if self.complete_sphere:
+            max_cos_theta = 1.0
+            max_phi = np.pi
+        else:
+            max_cos_theta = np.cos(self.max_angle_incomplete)
+            max_phi = self.max_angle_incomplete
+        
+        random_theta = np.arccos(self.rng.uniform(low=-max_cos_theta, 
+                                                  high=max_cos_theta,
+                                                  size=self.n_random))
+        random_phi = self.rng.uniform(low=-max_phi, high=max_phi, size=self.n_random)
+        random = np.column_stack((random_theta, random_phi))
+        return random
+
+    #-----------------------
+    # Build TreeCorr Catalogs
+    #-----------------------
 
     
-        #internal functions for distances, do not change z here!!
-    def E(self, z):
-        """Dimensionless Hubble parameter E(z) = H(z)/H0."""
+    def _catalog(self, coords_sph):
+        if self.distance_type == 'euclidean':
+            coords=coordinate_tools.theta_phi_to_unitvec(coords_sph)
+            return treecorr.Catalog(x=coords[:,0],
+                                    y=coords[:,1],
+                                    z=coords[:,2])
         
-        return np.sqrt(
-            self.Omega_m * (1 + z)**3 +
-            self.Omega_r * (1 + z)**4 +
-            self.Omega_lambda +
-            self.Omega_k * (1 + z)**2
-        )
+        elif self.distance_type == 'angular':
+            # coords assumed (theta phi)
+            dec = 90 - np.degrees(coords_sph[:,0]) 
+            ra = np.degrees(coords_sph[:,1]) % 360 
+            return treecorr.Catalog(ra=ra, dec=dec)
+        else:
+            raise ValueError("distance_type must be 'euclidean' or 'angular'")
 
-    def redshift_error(self,n):
-        #we will assume a 3 sigma redshift bin
-        #we ignore systematic errors for now
-        sigma_z=0.0005*(1+self.redshift)
-        return n*sigma_z
+    #-----------------------
+    # Compute RR
+    #-----------------------
+    def _rr(self):
+        self.nn.clear()
+        self.nn.process(self.cat_random)
+        return self.nn.npairs.copy()
 
-    def _comoving_distance(self,z):
-        """
-        Compute comoving line-of-sight distance D_C(z) in Mpc.
-        """
+    #-----------------------
+    # Compute DD
+    #-----------------------
+    def _dd(self, cat):
+        self.nn.clear()
+        self.nn.process(cat)
+        return self.nn.npairs.copy()
+
+    #-----------------------
+    # Compute DR
+    #-----------------------
+    def _dr(self, cat):
+        self.nn.clear()
+        self.nn.process(cat, self.cat_random)
+        return self.nn.npairs.copy()
+
+    #-----------------------
+    # Landy-Szalay estimator
+    #-----------------------
+    def landy_szalay(self, coords):
+        n_data = coords.shape[0]
+        cat_data = self._catalog(coords) #catalog of the coordinates, randoms is already done
+        dd_counts = self._dd(cat_data)
+        self.nn.clear()
+        dr_counts = self._dr(cat_data)
+        self.nn.clear()
         
-        integral, _ = quad(lambda zp: 1.0 / self.E(zp), 0.0, z, epsrel=1e-6)
-        Dc = (self.c_km_s / self.H0) * integral
-        return Dc
-    def _luminosity_distance(self):
-        """
-        Compute luminosity distance D_L(z) in Mpc.
-        """
-        Dc = self.comoving_distance
-        Dl = (1 + self.redshift) * Dc
-        return Dl
-    def _angular_diameter_distance(self):
-        """
-        Compute angular diameter distance D_A(z) in Mpc.
-        """
-        Dc = self.comoving_distance
-        Da = Dc / (1 + self.redshift)
-        return Da
 
-    def _bao_sound_horizon(self):
-        """
-        Compute BAO comoving sound horizon r_d at the drag epoch.
-        Based on Eisenstein & Hu (1998).
-        """
+        dd_norm = dd_counts / (n_data*(n_data-1)/2)
+        dr_norm = dr_counts / (n_data*self.n_random)
+        
 
-        # --- Sound horizon integral ---
-        def R_of_z(zp):
-            return (3.0 * self.Omega_b) / (4.0 * self.Omega_gamma) / (1.0 + zp)
+        # Avoid division by zero
+        rr_nonzero = np.where(self.rr_norm==0, 1e-10, self.rr_norm)
+        w_ls = (dd_norm - 2*dr_norm + self.rr_norm) / rr_nonzero
+        return w_ls
 
-        def c_s(zp):  
-            return self.c_km_s / np.sqrt(3.0 * (1.0 + R_of_z(zp)))
-
-        def integrand(zp):
-            return c_s(zp) / (self.H0 *self.E(zp))
-
-        r_d, _ = quad(integrand, self.z_drag, 1e7, epsrel=1e-6, limit=200)
-        return r_d
 
 
 

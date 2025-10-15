@@ -8,10 +8,10 @@ import formulae as fm
 
 # Simulation parameters
 simulation = "L2800N5040/HYDRO_FIDUCIAL"
-redshift = 73
+redshift = 72
 
 # Plot settings
-angular = False
+angular = True
 
 show_fit = False         # whether to fit & plot smooth models
 save_plot = True         # whether to save the figure as PNG

@@ -1,5 +1,14 @@
+import numpy as np
+import scipy.spatial as ss
+from scipy.integrate import quad
+from astropy.constants import c
+from scipy.optimize import curve_fit
+
+
+
 class cosmo_tools:
-    def __init__(self, H0, Omega_m, Omega_lambda, Tcmb, Neff, Omega_b, redshift,n_sigma):
+    def __init__(self,box_size, H0, Omega_m, Omega_lambda, Tcmb, Neff, Omega_b, redshift,n_sigma):
+        self.box_size=box_size
         #Hubble constant
         self.H0 = H0
         self.h = self.H0 / 100.0

@@ -1,6 +1,6 @@
 import numpy as np
 import unyt as u
-from galaxy_correlation import cosmo_tools
+from cosmology import cosmo_tools
 from scipy.interpolate import interp1d
 
 
@@ -120,7 +120,7 @@ class filtering_tools:
     #The next two functions are actually used by the main.py files
     def radial_luminosity(self,coordinates):
 
-        __,radial_mask=self.radial_filter(coordinates)
+        radial_mask=self.radial_filter(coordinates)
 
         luminosity_mask=self._luminosity_filter(mask=radial_mask)
 
