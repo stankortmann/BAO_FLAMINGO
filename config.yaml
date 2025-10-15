@@ -1,0 +1,30 @@
+paths:
+  directory: "/cosma8/data/dp004/flamingo/Runs/"
+  simulation: "L2800N5040/HYDRO_FIDUCIAL"
+  soap_hbt_subpath: "SOAP-HBT/halo_properties_00"
+  redshift_file: "output_list.txt"
+
+snapshot:
+  number: 72 #for numbers below 10, fill in 06 or 07, not 6 and 7
+  
+
+distance:
+  min: 50
+  max: 220
+  type: angular
+
+random_catalog:
+  seed: 12345
+  oversampling: 2
+
+filters:
+  central_filter: off
+  stellar_mass_filter: off
+  stellar_mass_cutoff: 90
+  luminosity_filter: on
+  mr: 19
+  band: r
+
+plotting:
+  bins: 200
+  leafsize: 100

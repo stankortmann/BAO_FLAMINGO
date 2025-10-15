@@ -7,12 +7,14 @@ import os
 import time
 import gc
 import threading
+import yaml
 
 # Now our own modules
 import galaxy_correlation as gal_cor
 import filtering as flt
 import statistics as stat
 import cosmology as cs
+
 
 
 def monitor_memory(interval=30):
@@ -55,7 +57,7 @@ central_filter = False
 stellar_mass_filter = False
 stellar_mass_cutoff = 90
 luminosity_filter_switch = True
-mr = 17.8
+mr = 19
 band = 'r'
 
 # --- Plotting/statistics ---
@@ -78,7 +80,7 @@ centre = np.array([middle, middle, middle])
 
 # --- Cosmology tools ---
 cosmo = cs.cosmo_tools(
-    box_size=box_size,
+    box_size=box_size_float,
     H0=cosmology.H0.value,
     Omega_m=cosmology.Om0,
     Omega_b=cosmology.Ob0,
@@ -104,6 +106,9 @@ if cosmo.plus_dr < 0.5 * box_size_float:
     )
     observer = centre.copy()
     shift = shift_coordinates
+
+    #max_angle has to be defined for the correlation 
+    max_angle_plus_dr=0
     print("In this snapshot a complete spherical slice is possible!!")
 else:
     complete_sphere = False
@@ -172,7 +177,7 @@ correlation = gal_cor.correlation_tools_treecorr(
     max_angle=max_angle_plus_dr, complete_sphere=complete_sphere,
     bins=bins, distance_type=distance_type, seed=seed_random)
 
-hist_ls = correlation.landy_szalay(coordinates=d_coords_sph)
+hist_ls = correlation.landy_szalay(coords=d_coords_sph)
 survey_density = correlation.galaxy_density(data_size)
 print("survey density is #/deg^2",survey_density)
 
@@ -190,7 +195,7 @@ np.savez(
     bins=correlation.bins,
     thickness_slice=cosmo.delta_dr,
     data_size=data_size,
-    oversampling=oversampling,
+    oversampling_factor=oversampling,
     random_size=correlation.n_random,
     bao_angle=correlation.bao_angle,
     bao_distance=cosmo.bao_distance,

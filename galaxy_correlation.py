@@ -8,6 +8,7 @@ import treecorr
 
 
 
+
 #--- NUMBA NJIT speed up for coordinate transformations
 
 
@@ -375,31 +376,18 @@ class correlation_tools_treecorr:
         
         
         # define bin edges and nn objects for the treecorrelation
-        if distance_type == 'euclidean':
-            self.bin_edges = np.linspace(min_distance,max_distance,self.bins+1)
-            self.nn = treecorr.NNCorrelation(
-            min_sep=self.min_chord,
-            max_sep=self.max_chord,
-            nbins=self.bins,
-            sep_units='Mpc',
-            bin_type='Linear'
-            )
-        elif distance_type == 'angular':
-            self.min_angle=coordinate_tools.chord_to_angular_separation(min_chord)
-            self.max_angle=coordinate_tools.chord_to_angular_separation(max_chord)
-            self.bin_edges=np.linspace(self.min_angle,self.max_angle,self.bins+1)
-            self.nn = treecorr.NNCorrelation(
-            min_sep=self.min_angle,
-            max_sep=self.max_angle,
-            nbins=self.bins,
-            sep_units='Degrees',
-            bin_type='Linear'
-            )
-        else:
-            raise ValueError("distance_type must be 'euclidean' or 'angular'")
-        
-        
-        
+        self.bin_edges = np.linspace(min_distance,max_distance,self.bins+1)
+        self.min_sep=self.min_chord
+        self.max_sep=self.max_chord
+        self.bin_type='Linear'
+    
+            
+        if distance_type == 'angular':
+            #change to angular bin edges, overwriting
+
+            #might want to get meanlogr or meanr from the treecorr module!
+            self.bin_edges=coordinate_tools.chord_to_angular_separation(self.bin_edges)
+            
 
         # bin centers for plotting
         self.bin_centers = 0.5 * (self.bin_edges[:-1] + self.bin_edges[1:])
@@ -411,9 +399,11 @@ class correlation_tools_treecorr:
         self.cat_random = self._catalog(self.randoms)
         
         # Precompute RR once
-        self.rr_norm = self._rr() / (self.n_random * (self.n_random-1)/2)
+        self.rr = self._rr()
         
 
+    
+    
     def galaxy_density(self, n_galaxies):
         """
         Calculate the density of galaxies per square degree.
@@ -465,63 +455,61 @@ class correlation_tools_treecorr:
 
     
     def _catalog(self, coords_sph):
-        if self.distance_type == 'euclidean':
-            coords=coordinate_tools.theta_phi_to_unitvec(coords_sph)
-            return treecorr.Catalog(x=coords[:,0],
-                                    y=coords[:,1],
-                                    z=coords[:,2])
-        
-        elif self.distance_type == 'angular':
-            # coords assumed (theta phi)
-            dec = 90 - np.degrees(coords_sph[:,0]) 
-            ra = np.degrees(coords_sph[:,1]) % 360 
-            return treecorr.Catalog(ra=ra, dec=dec)
-        else:
-            raise ValueError("distance_type must be 'euclidean' or 'angular'")
+        #Secure type as float
+        coords_sph = np.asarray(coords_sph, dtype=float)
+    
+        coords=coordinate_tools.theta_phi_to_unitvec(coords_sph)
+        #Secure type as float
+        coords = np.asarray(coords, dtype=float)
+        return treecorr.Catalog(x=coords[:,0],
+                                y=coords[:,1],
+                                z=coords[:,2])
+    
 
     #-----------------------
     # Compute RR
     #-----------------------
-    def _rr(self):
-        self.nn.clear()
-        self.nn.process(self.cat_random)
-        return self.nn.npairs.copy()
-
-    #-----------------------
-    # Compute DD
-    #-----------------------
     def _dd(self, cat):
-        self.nn.clear()
-        self.nn.process(cat)
-        return self.nn.npairs.copy()
+        nn = treecorr.NNCorrelation(
+            min_sep=self.min_sep,
+            max_sep=self.max_sep,
+            nbins=self.bins,
+            bin_type=self.bin_type
+        )
+        nn.process(cat)
+        return nn
 
-    #-----------------------
-    # Compute DR
-    #-----------------------
     def _dr(self, cat):
-        self.nn.clear()
-        self.nn.process(cat, self.cat_random)
-        return self.nn.npairs.copy()
+        nn = treecorr.NNCorrelation(
+            min_sep=self.min_sep,
+            max_sep=self.max_sep,
+            nbins=self.bins,
+            bin_type=self.bin_type
+        )
+        nn.process(cat, self.cat_random)
+        return nn
 
-    #-----------------------
-    # Landy-Szalay estimator
-    #-----------------------
+    def _rr(self):
+        nn = treecorr.NNCorrelation(
+            min_sep=self.min_sep,
+            max_sep=self.max_sep,
+            nbins=self.bins,
+            bin_type=self.bin_type
+        )
+        nn.process(self.cat_random)
+        return nn
+        #-----------------------
+        # Landy-Szalay estimator
+        #-----------------------
     def landy_szalay(self, coords):
+
+        #coordinates are spherical, are transformed in self._catalog
         n_data = coords.shape[0]
         cat_data = self._catalog(coords) #catalog of the coordinates, randoms is already done
-        dd_counts = self._dd(cat_data)
-        self.nn.clear()
-        dr_counts = self._dr(cat_data)
-        self.nn.clear()
+        dd = self._dd(cat_data)
+        dr = self._dr(cat_data)
+        w_ls,var_ls=dd.calculateXi(rr=self.rr,dr=dr)
         
-
-        dd_norm = dd_counts / (n_data*(n_data-1)/2)
-        dr_norm = dr_counts / (n_data*self.n_random)
-        
-
-        # Avoid division by zero
-        rr_nonzero = np.where(self.rr_norm==0, 1e-10, self.rr_norm)
-        w_ls = (dd_norm - 2*dr_norm + self.rr_norm) / rr_nonzero
         return w_ls
 
 

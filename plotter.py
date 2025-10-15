@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import formulae as fm
+
+#own modules!
+import statistics as stat
+import smooth_fitting as sf
 
 # ============================================================
 # --- CONFIGURATION ---
@@ -11,8 +14,12 @@ simulation = "L2800N5040/HYDRO_FIDUCIAL"
 redshift = 72
 
 # Plot settings
-angular = True
-
+angles=True
+if angles:
+    distance_type='angular' #or 'euclidean' 
+else:
+    distance_type='euclidean'
+ 
 show_fit = False         # whether to fit & plot smooth models
 save_plot = True         # whether to save the figure as PNG
 
@@ -21,10 +28,10 @@ save_plot = True         # whether to save the figure as PNG
 # ============================================================
 
 safe_simulation = simulation.replace("/", "_")
-sim_name = f"{safe_simulation}_data_00{redshift}"
+sim_name = f"{safe_simulation}_snapshot_{redshift}"
 
-ang_suffix = "_angular_" if angular else "_"
-filename_histogram = f"pdh{ang_suffix}avgs_{sim_name}.npz"
+
+filename_histogram = f"single_slice_{distance_type}_{sim_name}.npz"
 
 # PNG file name for output
 png_filename = filename_histogram.replace(".npz", "_plot.png")
@@ -39,8 +46,8 @@ except FileNotFoundError:
     raise FileNotFoundError(f"File not found: {filename_histogram}")
 
 bin_centers = data["bin_centers"]
-bao_angle = data["bao_distance"]
-ls_avg = data["ls_avg"][0]  # first bootstrap sample
+bao_angle = data["bao_angle"]
+ls_avg = data["ls_avg"]
 
 # Optional: standard deviation if needed
 # ls_std = data["ls_std_bs"]
@@ -50,7 +57,7 @@ ls_avg = data["ls_avg"][0]  # first bootstrap sample
 # ============================================================
 
 # Define your range
-angle_min, angle_max = 2.0, 4.0  # degrees (or Mpc if angular=False)
+angle_min, angle_max = 0, 100 # degrees (or Mpc if angular=False)
 
 # Create a boolean mask for the range
 mask = (bin_centers >= angle_min) & (bin_centers <= angle_max)
@@ -82,7 +89,7 @@ plt.axvline(bao_angle, color="g", linestyle="--", label=f"BAO angle = {bao_angle
 # ============================================================
 
 if show_fit:
-    w_power, w_poly = fm.fit_smooth_correlation(
+    w_power, w_poly = sf.fit_smooth_correlation(
         bin_centers, ls_avg, theta_min=None, theta_max=80
     )
 
@@ -98,7 +105,7 @@ if show_fit:
 # --- LABELS & SAVE ---
 # ============================================================
 
-plt.xlabel("Angle (degrees)" if angular else "Separation (Mpc)")
+plt.xlabel("Angle (degrees)" if angles else "Separation (Mpc)")
 plt.ylabel("Correlation")
 plt.title(sim_name)
 plt.legend()
@@ -107,6 +114,6 @@ plt.grid(alpha=0.3)
 if save_plot:
     plt.tight_layout()
     plt.savefig(png_filename, dpi=300)
-    print(f"✅ Plot saved as '{png_filename}'")
+    print(f"Plot saved as '{png_filename}'")
 
 plt.show()
