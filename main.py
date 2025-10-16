@@ -2,8 +2,8 @@
 import yaml
 
 # Our own modules
-import data_structure as ds  # dataclasses in separate file
-from pipeline_single import run_pipeline_single
+import baoflamingo.data_structure as ds  # dataclasses in separate file
+from baoflamingo.pipeline_single import run_pipeline_single
 
 
 ############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############

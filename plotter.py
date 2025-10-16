@@ -77,7 +77,7 @@ ls_avg_plot = ls_avg[mask]
 plt.figure(figsize=(8, 6))
 
 # Main correlation function
-plt.plot( ls_avg_plot, label="Landy–Szalay", lw=1.8)
+plt.plot( bin_centers_plot,ls_avg_plot, label="Landy–Szalay", lw=1.8)
 
 # Optional error bars (uncomment if you have std)
 # plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,
