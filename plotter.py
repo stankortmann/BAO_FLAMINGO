@@ -48,6 +48,8 @@ except FileNotFoundError:
 bin_centers = data["bin_centers"]
 bao_angle = data["bao_angle"]
 ls_avg = data["ls_avg"]
+print(ls_avg)
+print(bin_centers)
 
 # Optional: standard deviation if needed
 # ls_std = data["ls_std_bs"]
@@ -75,7 +77,7 @@ ls_avg_plot = ls_avg[mask]
 plt.figure(figsize=(8, 6))
 
 # Main correlation function
-plt.plot(bin_centers_plot, ls_avg_plot, label="Landy–Szalay", lw=1.8)
+plt.plot( ls_avg_plot, label="Landy–Szalay", lw=1.8)
 
 # Optional error bars (uncomment if you have std)
 # plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,

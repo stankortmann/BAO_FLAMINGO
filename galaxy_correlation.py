@@ -1,125 +1,11 @@
 import numpy as np
-import scipy.spatial as ss
-from scipy.integrate import quad
-from astropy.constants import c
-from scipy.optimize import curve_fit
-from numba import njit, prange
 import treecorr
+import unyt as u
+
+from coordinates import coordinate_tools
 
 
 
-
-#--- NUMBA NJIT speed up for coordinate transformations
-
-
-@njit(parallel=True)
-def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0, apply_periodic=True):
-    """
-    Convert Cartesian (x, y, z) positions to spherical (r, theta, phi)
-    relative to a given observer, optionally applying periodic boundaries.
-
-    Parameters
-    ----------
-    coords : np.ndarray, shape (N, 3)
-        Cartesian coordinates.
-    observer : np.ndarray, shape (3,)
-        Observer position.
-    box_size : float
-        Box size for periodic boundaries.
-    apply_periodic : bool
-        Whether to apply periodic boundary conditions.
-
-    Returns
-    -------
-    sph_coords : np.ndarray, shape (N, 3)
-        Columns are (r, theta, phi)
-    """
-    N = coords.shape[0]
-    sph_coords = np.empty((N, 3), dtype=np.float64)
-    
-    for i in prange(N):
-        x, y, z = coords[i, 0], coords[i, 1], coords[i, 2]
-
-        
-
-        # shift coordinates if the sphere is complete, if not nothing happens
-        dx = x - shift[0] 
-        dy = y - shift[1] 
-        dz = z - shift[2]
-
-        # Apply periodic boundary conditions if needed
-        if apply_periodic:
-            dx = dx % box_size
-            dy = dy % box_size
-            dz = dz % box_size
-
-        # Shift to be relative to the observer
-        dx = dx - observer[0] 
-        dy = dy - observer[1] 
-        dz = dz - observer[2]
-
-        r = np.sqrt(dx*dx + dy*dy + dz*dz)
-        theta = np.arccos(dz / r)  # polar angle [0, pi]
-        phi = np.arctan2(dy, dx)   # azimuthal angle [-pi, pi]
-
-        sph_coords[i, 0] = r
-        sph_coords[i, 1] = theta
-        sph_coords[i, 2] = phi
-
-    return sph_coords
-
-
-
-
-class coordinate_tools:
-
-    def __init__(self,coordinates,box_size=1000,
-        complete_sphere=True,observer=None,shift=None):
-        
-        
-
-        # Compute spherical coordinates immediately and store
-        self.spherical = cartesian_to_spherical_numba(
-            coordinates, shift, observer,
-            box_size=box_size, apply_periodic=complete_sphere
-        )
-
-
-    @staticmethod
-    def theta_phi_to_unitvec(coords):
-        """
-        Convert spherical coordinates (theta, phi) to 3D unit vectors.
-        theta: polar angle [0, pi]
-        phi: azimuthal angle [0, 2pi]
-        """
-        theta, phi = coords[:,0], coords[:,1]
-        x = np.sin(theta) * np.cos(phi)
-        y = np.sin(theta) * np.sin(phi)
-        z = np.cos(theta)
-        return np.column_stack((x, y, z))
-
-    @staticmethod
-    def chord_to_angular_separation(chord_lengths):
-
-        """
-        Convert chord lengths on a unit sphere to angular separations in radians.
-        
-        Parameters
-        ----------
-        chord_lengths : array-like
-            Chord lengths (0 to 2)
-        
-        Returns
-        -------
-        alpha : array-like
-            Angular separations in radians (0 to pi)
-        """
-        chord_lengths = np.asarray(chord_lengths)
-        #clip for numerical stability
-        alpha_rad = 2.0 * np.arcsin(np.clip(chord_lengths / 2.0, 0.0, 1.0)) 
-        alpha_degrees= np.rad2deg(alpha_rad)
-        return alpha_degrees
-    
 
 
 class correlation_tools:
@@ -159,9 +45,9 @@ class correlation_tools:
         
 
         #angles if necesarry
-        self.min_angle = coordinate_tools.chord_to_angular_separation(self.min_chord) 
-        self.max_angle = coordinate_tools.chord_to_angular_separation(self.max_chord) 
-        self.bao_angle = coordinate_tools.chord_to_angular_separation(self.bao_chord)
+        self.min_angle = coordinate_tools.chord_to_angular_degrees(self.min_chord)
+        self.max_angle = coordinate_tools.chord_to_angular_degrees(self.max_chord)
+        self.bao_angle = coordinate_tools.chord_to_angular_degrees(self.bao_chord)
         
 
         
@@ -275,7 +161,7 @@ class correlation_tools:
     def rr(self):
         rr_chord=self.chord_distances_kdtree(tree1=self.tree_random,tree2=None)
         if self.distance_type=='angular':
-            return coordinate_tools.chord_to_angular_separation(rr_chord)
+            return coordinate_tools.chord_to_angular_degrees(rr_chord)
         if self.distance_type=='euclidean':
             return self.radius*rr_chord
     #Call this every time we want dd or dr distances
@@ -283,7 +169,7 @@ class correlation_tools:
         d_tree=self.tree_creation(coords=coordinates)
         dd_chord=self.chord_distances_kdtree(tree1=d_tree,tree2=None)
         if self.distance_type=='angular':
-            return coordinate_tools.chord_to_angular_separation(dd_chord)
+            return coordinate_tools.chord_to_angular_degrees(dd_chord)
         if self.distance_type=='euclidean':
             return self.radius*dd_chord
         
@@ -292,7 +178,7 @@ class correlation_tools:
         d_tree=self.tree_creation(coords=coordinates)
         dr_chord=self.chord_distances_kdtree(tree1=d_tree, tree2=self.tree_random)
         if self.distance_type=='angular':
-            return coordinate_tools.chord_to_angular_separation(dr_chord)
+            return coordinate_tools.chord_to_angular_degrees(dr_chord)
         if self.distance_type=='euclidean':
             return self.radius*dr_chord
     
@@ -353,11 +239,18 @@ class correlation_tools:
         return w
 
 
+
+
+
+
+
+
 class correlation_tools_treecorr:
     def __init__(self, cosmology,
                  min_distance=0, max_distance=250, n_random=50000,
                  max_angle=0.1, complete_sphere=True,
-                 bins=100, distance_type='euclidean', seed=12345):
+                 bins=100, distance_type='euclidean', seed=12345,
+                 variance_method='jackknife',n_patches=100):
         
         self.n_random = n_random
         self.bins = bins
@@ -370,43 +263,55 @@ class correlation_tools_treecorr:
         self.min_chord=min_distance/self.radius
         self.max_chord=max_distance/self.radius
         self.bao_chord=cosmology.bao_distance/self.radius
-        self.bao_angle=coordinate_tools.chord_to_angular_separation(self.bao_chord)
+        self.bao_angle=coordinate_tools.chord_to_angular_degrees(self.bao_chord)*u.deg
         self.bins=bins
         
         
         
         # define bin edges and nn objects for the treecorrelation
-        self.bin_edges = np.linspace(min_distance,max_distance,self.bins+1)
         self.min_sep=self.min_chord
         self.max_sep=self.max_chord
-        self.bin_type='Linear'
-    
+        self.bin_type='Linear' 
             
-        if distance_type == 'angular':
-            #change to angular bin edges, overwriting
-
-            #might want to get meanlogr or meanr from the treecorr module!
-            self.bin_edges=coordinate_tools.chord_to_angular_separation(self.bin_edges)
-            
-
-        # bin centers for plotting
-        self.bin_centers = 0.5 * (self.bin_edges[:-1] + self.bin_edges[1:])
-        self.bin_size = self.bin_edges[1]-self.bin_edges[0]
+        
+        
+        
 
         # generate random catalog
         self.rng = np.random.default_rng(seed)
         self.randoms=self._generate_random()
+
+        #first set patches at a number previously set up
+        self.npatches=n_patches
+        self.patch_centers=None
         self.cat_random = self._catalog(self.randoms)
+        
+        #now set up patch centers as mentioned before and get npatches=None
+        #only done when n_patches is defined!!!
+        #also define the method used
+        #cpw=Cross-patch Weights, see TreeCorr documentation
+        self.variance_method=variance_method
+        if self.variance_method=='jackknife':
+            self.cpw='match'
+        elif self.variance_method=='bootstrap':
+            self.cpw='geom'
+        else:
+            self.cpw='simple'
+
+        
+        self.npatches=None
+        self.patch_centers=self.cat_random.patch_centers
         
         # Precompute RR once
         self.rr = self._rr()
+        
         
 
     
     
     def galaxy_density(self, n_galaxies):
         """
-        Calculate the density of galaxies per square degree.
+        Calculate the density of galaxies per square degree, with units.
 
         Parameters
         ----------
@@ -415,18 +320,17 @@ class correlation_tools_treecorr:
 
         Returns
         -------
-        density : float
+        density : astropy.units.Quantity
             Density of galaxies per square degree.
         """
         if self.complete_sphere:
-            area_sr = 4 * np.pi  # full sphere in steradians
+            area_sr = 4 * np.pi * u.sr  # full sphere in steradians
         else:
-            
-            #the two pi is because we are centered around the pole
-            # spherical cap area in steradians
-            area_sr = 2 * self.max_angle * (1 - np.cos(self.max_angle))  
+            # Spherical cap area in steradians
+            area_sr = 2 * self.max_angle * (1 - np.cos(self.max_angle)) * u.sr
 
-        area_sqdeg = area_sr * (180 / np.pi)**2  # convert steradians to square degrees
+        # Convert steradians to square degrees
+        area_sqdeg = area_sr.to(u.deg**2)
         density = n_galaxies / area_sqdeg
         return density     
 
@@ -457,13 +361,15 @@ class correlation_tools_treecorr:
     def _catalog(self, coords_sph):
         #Secure type as float
         coords_sph = np.asarray(coords_sph, dtype=float)
-    
-        coords=coordinate_tools.theta_phi_to_unitvec(coords_sph)
-        #Secure type as float
-        coords = np.asarray(coords, dtype=float)
-        return treecorr.Catalog(x=coords[:,0],
-                                y=coords[:,1],
-                                z=coords[:,2])
+        #overwriting=memory efficiency
+        coords_sph=coordinate_tools.theta_phi_to_ra_dec(coords_sph) #ra,dec
+        #Secure type as float, double check
+        coords_sph = np.asarray(coords_sph, dtype=float)
+        return treecorr.Catalog(ra=coords_sph[:,0],
+                                dec=coords_sph[:,1],
+                                npatch=self.npatches,
+                                patch_centers=self.patch_centers
+                                )
     
 
     #-----------------------
@@ -474,7 +380,10 @@ class correlation_tools_treecorr:
             min_sep=self.min_sep,
             max_sep=self.max_sep,
             nbins=self.bins,
-            bin_type=self.bin_type
+            bin_type=self.bin_type,
+            var_method=self.variance_method,
+            cross_patch_weight=self.cpw
+
         )
         nn.process(cat)
         return nn
@@ -503,13 +412,22 @@ class correlation_tools_treecorr:
         #-----------------------
     def landy_szalay(self, coords):
 
-        #coordinates are spherical, are transformed in self._catalog
-        n_data = coords.shape[0]
-        cat_data = self._catalog(coords) #catalog of the coordinates, randoms is already done
+        #coordinates are spherical, are transformed in self._catalog to ra,dec
+        #catalog of the coordinates, randoms is already done
+        cat_data = self._catalog(coords) 
         dd = self._dd(cat_data)
         dr = self._dr(cat_data)
         w_ls,var_ls=dd.calculateXi(rr=self.rr,dr=dr)
-        
+        self.bin_centers=dd.rnom #chord distances
+        if self.distance_type == 'angular':
+
+            #might want to get meanlogr or meanr from the treecorr module!
+            self.bin_centers=(coordinate_tools.chord_to_angular_degrees(self.bin_centers))
+            
+        if self.distance_type == 'euclidean':
+            self.bin_centers=(self.bin_centers*self.radius)*u.Mpc #actual euclidean distances
+        #not exactly true for the angular case, only relatively true for small angles
+        self.bin_width = self.bin_centers[1]-self.bin_centers[0]
         return w_ls
 
 

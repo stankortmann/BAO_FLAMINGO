@@ -2,6 +2,7 @@ from swiftsimio import load
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.spatial as ss
+import astropy.units as u
 import psutil
 import os
 import time
@@ -45,7 +46,7 @@ b = ""       # to match filename structure if needed
 
 # --- Distance range ---
 min_distance = 50   # Mpc
-max_distance = 220 # Mpc
+max_distance = 200 # Mpc
 distance_type= 'angular' #'angular'  or 'euclidean' 
 
 # --- Random catalog ---
@@ -61,7 +62,7 @@ mr = 19
 band = 'r'
 
 # --- Plotting/statistics ---
-bins = 200
+bins = 100
 leafsize = 100
 
 # --- Load snapshot ---
@@ -175,11 +176,12 @@ correlation = gal_cor.correlation_tools_treecorr(
     cosmology=cosmo,
     min_distance=min_distance, max_distance=max_distance, n_random=n_random,
     max_angle=max_angle_plus_dr, complete_sphere=complete_sphere,
-    bins=bins, distance_type=distance_type, seed=seed_random)
+    bins=bins, distance_type=distance_type, seed=seed_random,
+    variance_method='jackknife',n_patches=100)
 
 hist_ls = correlation.landy_szalay(coords=d_coords_sph)
 survey_density = correlation.galaxy_density(data_size)
-print("survey density is #/deg^2",survey_density)
+print("survey density is ",survey_density*to(1/u.arcmin**2))
 
 # --- Statistics for this single slice ---
 # Just compute standard errors for this one slice (no bootstrap across slices)

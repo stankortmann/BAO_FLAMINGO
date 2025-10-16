@@ -15,6 +15,7 @@ import filtering as flt
 import statistics as stat
 import cosmology as cs
 import data_structure as ds  # dataclasses in separate file
+from coordinates as coordinate_tools
 
 # --- Memory monitor ---
 def monitor_memory(interval=30):
@@ -100,14 +101,14 @@ def run_pipeline(cfg: Config):
         stellar_mass_cutoff=cfg.filters.stellar_mass_cutoff,
         luminosity_filter=cfg.filters.luminosity_filter,
         filter_band=cfg.filters.band,
-        m_cutoff=cfg.filters.mr
+        m_cutoff=cfg.filters.m_cutoff
     )
     gc.collect()
     print("Filters set up")
     
     # --- Coordinate transformation ---
     d_coords = data.input_halos.halo_centre.value
-    coordinates = gal_cor.coordinate_tools(
+    coordinates = coordinate_tools(
         coordinates=d_coords,
         box_size=box_size_float,
         complete_sphere=complete_sphere,
@@ -115,6 +116,8 @@ def run_pipeline(cfg: Config):
         shift=shift
     )
     d_coords_sph = coordinates.spherical
+
+    #memory efficiency to delete original d_coords from memory
     del d_coords
     gc.collect()
     
@@ -195,6 +198,7 @@ if __name__ == "__main__":
         random_catalog=ds.RandomCatalog(**cfg_dict['random_catalog']),
         filters=ds.Filters(**cfg_dict['filters']),
         plotting=ds.Plotting(**cfg_dict['plotting'])
+        statistics=ds.Statistics(**cfg_dict['statistics'])
     )
     
     run_pipeline(cfg)

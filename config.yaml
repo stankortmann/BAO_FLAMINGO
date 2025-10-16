@@ -8,23 +8,28 @@ snapshot:
   number: 72 #for numbers below 10, fill in 06 or 07, not 6 and 7
   
 
-distance:
-  min: 50
+distance: # in Mpc
+  min: 100
   max: 220
-  type: angular
+  type: angular #or euclidean
 
 random_catalog:
   seed: 12345
-  oversampling: 2
+  oversampling: 2 #the oversampling factor of the randoms
 
 filters:
   central_filter: off
   stellar_mass_filter: off
-  stellar_mass_cutoff: 90
+  stellar_mass_cutoff: 90 #percentile that is excluded
   luminosity_filter: on
-  mr: 19
-  band: r
+  band: r  #observed band
+  m_cutoff: 19  #apparent magnitude of the band of the observer
+  
 
 plotting:
   bins: 200
   leafsize: 100
+
+statistics:
+  variance_method: jackknife #or bootstrap
+  n_patches: 100

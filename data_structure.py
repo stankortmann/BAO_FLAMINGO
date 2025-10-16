@@ -29,13 +29,18 @@ class Filters:
     stellar_mass_filter: bool
     stellar_mass_cutoff: float
     luminosity_filter: bool
-    mr: float
     band: str
-
+    m_cutoff: float
+    
 @dataclass
 class Plotting:
     bins: int
     leafsize: int
+
+@dataclass
+class Statistics:
+    variance_method: str
+    n_patches= int
 
 @dataclass
 class Config:
@@ -45,3 +50,4 @@ class Config:
     random_catalog: RandomCatalog
     filters: Filters
     plotting: Plotting
+    statistics: Statistics
