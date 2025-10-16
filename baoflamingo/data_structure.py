@@ -3,8 +3,8 @@ from dataclasses import dataclass
 @dataclass
 class Paths:
     directory: str
-    simulation: str
     soap_hbt_subpath: str
+    simulation: str
     redshift_file: str
     snapshot_number:int
     output_directory:str

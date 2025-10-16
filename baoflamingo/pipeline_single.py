@@ -64,6 +64,7 @@ def run_pipeline_single(cfg):
         n_sigma=2
     )
     print("Cosmology set up")
+    print("Radius is",cosmo.comoving_distance)
     del metadata
     gc.collect()
     
@@ -141,7 +142,7 @@ def run_pipeline_single(cfg):
             complete_sphere=complete_sphere,
             bins=cfg.plotting.bins, 
             distance_type=cfg.distance.type, 
-            seed=cfg.random_catalog.seed_random,
+            seed=cfg.random_catalog.seed,
             variance_method=cfg.statistics.variance_method,
             n_patches=cfg.statistics.n_patches
     
@@ -155,8 +156,8 @@ def run_pipeline_single(cfg):
     # --- Save output ---
     # Define the relative output directory
     output_filename = os.path.join(
-        cfg.paths.output_dir,
-        f"single_slice_{cfg.distance.type}_{safe_simulation}_snapshot_{number}.npz")
+        cfg.paths.output_directory,
+    f"single_slice_{cfg.distance.type}_{safe_simulation}_snapshot_{redshift_number}.npz")
     np.savez(
         output_filename,
         bin_centers=correlation.bin_centers,

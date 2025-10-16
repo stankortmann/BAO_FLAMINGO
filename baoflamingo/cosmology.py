@@ -40,7 +40,8 @@ class cosmo_tools:
         #save all the importan parameters here
         self.redshift=redshift
         
-        self.redshift_error=self.redshift_error(n_sigma)
+        self.redshift_error=self._redshift_error(n_sigma)
+        self.dz=2*self.redshift_error #for later analysis needed
         self.bao_distance=self._bao_sound_horizon()
         self.comoving_distance=self._comoving_distance(self.redshift)
         self.plus_dr=self._comoving_distance(self.redshift+self.redshift_error)
@@ -66,7 +67,7 @@ class cosmo_tools:
             self.Omega_k * (1 + z)**2
         )
 
-    def redshift_error(self,n):
+    def _redshift_error(self,n):
         #we will assume a 3 sigma redshift bin
         #we ignore systematic errors for now
         sigma_z=0.0005*(1+self.redshift)

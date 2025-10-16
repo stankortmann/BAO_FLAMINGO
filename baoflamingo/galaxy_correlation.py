@@ -224,7 +224,8 @@ class correlation_tools_treecorr:
         dd.calculateXi(rr=self.rr,dr=dr)
         mean=dd.xi
         std=dd.varxi
-        print(np.shape(cov_matrix),np.shape(mean))
+        print(mean)
+        print(std)
 
         #for now only using the diagonal elements, later on maybe using the covariances!!!
         
