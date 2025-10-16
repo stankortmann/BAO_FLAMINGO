@@ -10,11 +10,11 @@ import smooth_fitting as sf
 # ============================================================
 
 # Simulation parameters
-simulation = "L2800N5040/HYDRO_FIDUCIAL"
-redshift = 72
+simulation = "L1000N1800/HYDRO_FIDUCIAL"
+redshift = 76
 
 # Plot settings
-angles=True
+angles=False
 if angles:
     distance_type='angular' #or 'euclidean' 
 else:
@@ -31,7 +31,7 @@ safe_simulation = simulation.replace("/", "_")
 sim_name = f"{safe_simulation}_snapshot_{redshift}"
 
 
-filename_histogram = f"single_slice_{distance_type}_{sim_name}.npz"
+filename_histogram = f"results_npz/single_slice_{distance_type}_{sim_name}.npz"
 
 # PNG file name for output
 png_filename = filename_histogram.replace(".npz", "_plot.png")

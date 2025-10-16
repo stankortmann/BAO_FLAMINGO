@@ -4,7 +4,7 @@ paths:
 
   simulation: "L1000N1800/HYDRO_FIDUCIAL" #only thouch this part!
   redshift_file: "output_list.txt"
-  snapshot_number: 76 #for numbers below 10, fill in 06 or 07, not 6 and 7
+  snapshot_number: 74 #for numbers below 10, fill in 06 or 07, not 6 and 7
   output_directory: "results_npz" #full path if necessary
 
 slicing:
@@ -13,7 +13,7 @@ slicing:
   
 
 distance: # in Mpc
-  min: 20
+  min: 10
   max: 200
   type: euclidean #or euclidean
 
@@ -27,11 +27,11 @@ filters:
   stellar_mass_cutoff: 70 #percentile that is excluded
   luminosity_filter: on
   band: r  #observed band
-  m_cutoff: 20 #apparent magnitude of the band of the observer
+  m_cutoff: 20 #apparent band magnitude for the observer
   
 
 plotting:
-  bins: 150
+  bins: 100
   leafsize: 100  #might be deleted later on, only useful in old_correlation.py
 
 statistics:
