@@ -11,10 +11,10 @@ import threading
 import yaml
 
 # Now our own modules
-import galaxy_correlation as gal_cor
-import filtering as flt
-import statistics as stat
-import cosmology as cs
+import baoflamingo.galaxy_correlation as gal_cor
+import baoflamingo.filtering as flt
+import baoflamingo.statistics as stat
+import baoflamingo.cosmology as cs
 
 
 
@@ -62,7 +62,7 @@ mr = 19
 band = 'r'
 
 # --- Plotting/statistics ---
-bins = 100
+bins = 200
 leafsize = 100
 
 # --- Load snapshot ---

@@ -14,13 +14,13 @@ if __name__ == "__main__":
         cfg_dict = yaml.safe_load(f)
     
     #ds. =data_structure.py, add inputs here!
-    cfg = Config(
+    cfg = ds.Config(
         paths=ds.Paths(**cfg_dict['paths']),
         slicing=ds.Slicing(**cfg_dict['slicing']),
         distance=ds.Distance(**cfg_dict['distance']),
         random_catalog=ds.RandomCatalog(**cfg_dict['random_catalog']),
         filters=ds.Filters(**cfg_dict['filters']),
-        plotting=ds.Plotting(**cfg_dict['plotting'])
+        plotting=ds.Plotting(**cfg_dict['plotting']),
         statistics=ds.Statistics(**cfg_dict['statistics'])
     )
     if cfg.slicing.method=='single':

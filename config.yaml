@@ -13,7 +13,7 @@ slicing:
 distance: # in Mpc
   min: 100
   max: 220
-  type: angular #or euclidean
+  type: euclidean #or euclidean
 
 random_catalog:
   seed: 12345
@@ -21,7 +21,7 @@ random_catalog:
 
 filters:
   central_filter: off
-  stellar_mass_filter: on
+  stellar_mass_filter: off
   stellar_mass_cutoff: 70 #percentile that is excluded
   luminosity_filter: on
   band: r  #observed band

@@ -1,6 +1,6 @@
 import numpy as np
 import unyt as u
-from cosmology import cosmo_tools
+from baoflamingo.cosmology import cosmo_tools
 from scipy.interpolate import interp1d
 
 

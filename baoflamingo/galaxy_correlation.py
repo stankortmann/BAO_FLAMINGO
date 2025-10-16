@@ -2,7 +2,7 @@ import numpy as np
 import treecorr
 import unyt as u
 #own modules
-from coordinates import coordinate_tools
+from baoflamingo.coordinates import coordinate_tools
 
 
 
@@ -121,12 +121,16 @@ class correlation_tools_treecorr:
 
     
     def _catalog(self, coords_sph):
+
+        """
         #Secure type as float
         coords_sph = np.asarray(coords_sph, dtype=float)
         #overwriting=memory efficiency 
         coords_sph=coordinate_tools.theta_phi_to_ra_dec(coords_sph) #ra,dec in degrees
         #Secure type as float, double check
         coords_sph = np.asarray(coords_sph, dtype=float)
+
+
         if self.patch_centers is None: #for the random catalogue patch_centers is empty
             return treecorr.Catalog(ra=coords_sph[:,0],
                                     dec=coords_sph[:,1],
@@ -143,6 +147,29 @@ class correlation_tools_treecorr:
                                     ra_units='degrees',
                                     dec_units='degrees'
                                     )
+        """
+        coords_sph = np.asarray(coords_sph, dtype=float)
+        #overwriting=memory efficiency 
+        coords=coordinate_tools.theta_phi_to_unitvec(coords_sph) #x,y,z
+        #Secure type as float, double check
+        coords = np.asarray(coords, dtype=float)
+
+
+        if self.patch_centers is None: #for the random catalogue patch_centers is empty
+            return treecorr.Catalog(x=coords[:,0],
+                                    y=coords[:,1],
+                                    z=coords[:,2],
+                                    npatch=self.npatches,
+                                    
+                                    )
+        else: #for the data catalogue
+            return treecorr.Catalog(x=coords[:,0],
+                                    y=coords[:,1],
+                                    z=coords[:,2],
+                                    patch_centers=self.patch_centers,
+
+                                    )
+
                                 
     
 
@@ -194,11 +221,13 @@ class correlation_tools_treecorr:
         cat_data = self._catalog(coords) 
         dd = self._dd(cat_data)
         dr = self._dr(cat_data)
-        mean,cov_matrix=dd.calculateXi(rr=self.rr,dr=dr)
+        dd.calculateXi(rr=self.rr,dr=dr)
+        mean=dd.xi
+        std=dd.varxi
         print(np.shape(cov_matrix),np.shape(mean))
 
         #for now only using the diagonal elements, later on maybe using the covariances!!!
-        std = np.sqrt(np.diag(cov_matrix))
+        
         
         chord_centers=dd.rnom #in chord distance
         if self.distance_type == 'angular':

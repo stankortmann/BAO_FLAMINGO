@@ -7,11 +7,11 @@ import gc
 import threading
 
 # Our own modules
-import galaxy_correlation as gal_cor
-import filtering as flt
-import statistics as stat
-import cosmology as cs
-from coordinates as coordinate_tools
+import baoflamingo.galaxy_correlation as gal_cor
+import baoflamingo.filtering as flt
+import baoflamingo.statistics as stat
+import baoflamingo.cosmology as cs
+from baoflamingo.coordinates import coordinate_tools
 
 # --- Memory monitor ---
 def monitor_memory(interval=30):
@@ -22,7 +22,7 @@ def monitor_memory(interval=30):
         print(f"[MEMORY MONITOR] {mem_gb:.3f} GB")
         time.sleep(interval)
 
-def run_pipeline_single(cfg: Config):
+def run_pipeline_single(cfg):
     """Main pipeline using the YAML config object."""
     
     # Start memory monitor

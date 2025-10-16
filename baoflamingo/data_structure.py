@@ -42,12 +42,12 @@ class Plotting:
 @dataclass
 class Statistics:
     variance_method: str
-    n_patches= int
+    n_patches: int
 
 @dataclass
 class Config:
     paths: Paths
-    snapshot: Snapshot
+    slicing: Slicing
     distance: Distance
     random_catalog: RandomCatalog
     filters: Filters

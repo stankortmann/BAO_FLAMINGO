@@ -59,7 +59,7 @@ print(bin_centers)
 # ============================================================
 
 # Define your range
-angle_min, angle_max = 0, 100 # degrees (or Mpc if angular=False)
+angle_min, angle_max = 0, 2000 # degrees (or Mpc if angular=False)
 
 # Create a boolean mask for the range
 mask = (bin_centers >= angle_min) & (bin_centers <= angle_max)
