@@ -10,7 +10,7 @@ from baoflamingo.pipeline_single import run_pipeline_single
 
 if __name__ == "__main__":
     # --- Load YAML config file to your liking ---
-    with open("config.yaml", "r") as f:
+    with open("configurations/config.yaml", "r") as f:
         cfg_dict = yaml.safe_load(f)
     
     #ds. =data_structure.py, add inputs here!

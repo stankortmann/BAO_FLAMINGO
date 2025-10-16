@@ -133,11 +133,19 @@ def run_pipeline_single(cfg):
     # --- Correlation ---
     n_random = int(cfg.random_catalog.oversampling * data_size)
     correlation = gal_cor.correlation_tools_treecorr(
-    cosmology=cosmo,
-    min_distance=cfg.distance.min, max_distance=cfg.distance.max, n_random=n_random,
-    max_angle=max_angle_plus_dr, complete_sphere=complete_sphere,
-    bins=bins, distance_type=distance_type, seed=seed_random,
-    variance_method=cfg.statistics.variance_method,n_patches=cfg.statistics.n_patches)
+            cosmology=cosmo,
+            min_distance=cfg.distance.min,
+            max_distance=cfg.distance.max, 
+            n_random=n_random,
+            max_angle=max_angle_plus_dr,
+            complete_sphere=complete_sphere,
+            bins=cfg.plotting.bins, 
+            distance_type=cfg.distance.type, 
+            seed=cfg.random_catalog.seed_random,
+            variance_method=cfg.statistics.variance_method,
+            n_patches=cfg.statistics.n_patches
+    
+    )
     
     mean_ls,std_ls = correlation.landy_szalay(coords=d_coords_sph)
     survey_density = correlation.galaxy_density(data_size)
@@ -148,7 +156,7 @@ def run_pipeline_single(cfg):
     # Define the relative output directory
     output_filename = os.path.join(
         cfg.paths.output_dir,
-        f"single_slice_{cfg.distance.type}_{safe_simulation}_snapshot_{number}.npz"
+        f"single_slice_{cfg.distance.type}_{safe_simulation}_snapshot_{number}.npz")
     np.savez(
         output_filename,
         bin_centers=correlation.bin_centers,
