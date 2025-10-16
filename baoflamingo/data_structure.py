@@ -7,6 +7,7 @@ class Paths:
     soap_hbt_subpath: str
     redshift_file: str
     snapshot_number:int
+    output_directory:str
 
 @dataclass
 class Slicing:

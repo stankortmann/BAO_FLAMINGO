@@ -4,6 +4,7 @@ paths:
   soap_hbt_subpath: "SOAP-HBT/halo_properties_00"
   redshift_file: "output_list.txt"
   snapshot_number: 72 #for numbers below 10, fill in 06 or 07, not 6 and 7
+  output_directory: "BAO/results_npz"
 
 slicing:
   method: "single" #or "multiple"

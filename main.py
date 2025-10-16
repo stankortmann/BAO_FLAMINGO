@@ -9,7 +9,7 @@ from baoflamingo.pipeline_single import run_pipeline_single
 ############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############
 
 if __name__ == "__main__":
-    # --- Load YAML config ---
+    # --- Load YAML config file to your liking ---
     with open("config.yaml", "r") as f:
         cfg_dict = yaml.safe_load(f)
     

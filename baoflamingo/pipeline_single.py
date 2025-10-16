@@ -134,7 +134,7 @@ def run_pipeline_single(cfg):
     n_random = int(cfg.random_catalog.oversampling * data_size)
     correlation = gal_cor.correlation_tools_treecorr(
     cosmology=cosmo,
-    min_distance=min_distance, max_distance=max_distance, n_random=n_random,
+    min_distance=cfg.distance.min, max_distance=cfg.distance.max, n_random=n_random,
     max_angle=max_angle_plus_dr, complete_sphere=complete_sphere,
     bins=bins, distance_type=distance_type, seed=seed_random,
     variance_method=cfg.statistics.variance_method,n_patches=cfg.statistics.n_patches)
@@ -145,7 +145,10 @@ def run_pipeline_single(cfg):
     
     
     # --- Save output ---
-    output_filename = f"single_slice_{cfg.distance.type}_{safe_simulation}_snapshot_{number}.npz"
+    # Define the relative output directory
+    output_filename = os.path.join(
+        cfg.paths.output_dir,
+        f"single_slice_{cfg.distance.type}_{safe_simulation}_snapshot_{number}.npz"
     np.savez(
         output_filename,
         bin_centers=correlation.bin_centers,
@@ -164,6 +167,4 @@ def run_pipeline_single(cfg):
     )
     
     print("Saved single-slice Landy-Szalay histogram to", output_filename)
-
-
 
