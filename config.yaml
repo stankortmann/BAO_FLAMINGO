@@ -3,9 +3,11 @@ paths:
   simulation: "L2800N5040/HYDRO_FIDUCIAL"
   soap_hbt_subpath: "SOAP-HBT/halo_properties_00"
   redshift_file: "output_list.txt"
+  snapshot_number: 72 #for numbers below 10, fill in 06 or 07, not 6 and 7
 
-snapshot:
-  number: 72 #for numbers below 10, fill in 06 or 07, not 6 and 7
+slicing:
+  method: "single" #or "multiple"
+  n_slices: 20
   
 
 distance: # in Mpc
@@ -19,8 +21,8 @@ random_catalog:
 
 filters:
   central_filter: off
-  stellar_mass_filter: off
-  stellar_mass_cutoff: 90 #percentile that is excluded
+  stellar_mass_filter: on
+  stellar_mass_cutoff: 70 #percentile that is excluded
   luminosity_filter: on
   band: r  #observed band
   m_cutoff: 19  #apparent magnitude of the band of the observer

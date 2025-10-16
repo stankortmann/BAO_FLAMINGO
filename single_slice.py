@@ -2,7 +2,7 @@ from swiftsimio import load
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.spatial as ss
-import astropy.units as u
+import unyt as u
 import psutil
 import os
 import time
@@ -179,14 +179,10 @@ correlation = gal_cor.correlation_tools_treecorr(
     bins=bins, distance_type=distance_type, seed=seed_random,
     variance_method='jackknife',n_patches=100)
 
-hist_ls = correlation.landy_szalay(coords=d_coords_sph)
+mean_ls,std_ls = correlation.landy_szalay(coords=d_coords_sph)
 survey_density = correlation.galaxy_density(data_size)
-print("survey density is ",survey_density*to(1/u.arcmin**2))
+print("survey density is ",survey_density.to(1/u.arcmin**2))
 
-# --- Statistics for this single slice ---
-# Just compute standard errors for this one slice (no bootstrap across slices)
-mean_ls = hist_ls
-std_ls = np.zeros_like(hist_ls)  # Placeholder, since only one slice
 
 # --- Save output ---
 output_filename = f"single_slice_{distance_type}_{safe_simulation}_snapshot_{number}.npz"
@@ -196,7 +192,7 @@ np.savez(
     bin_width=correlation.bin_width,
     bins=correlation.bins,
     thickness_slice=cosmo.delta_dr,
-    data_size=data_size,
+    survey_density=survey_density,
     oversampling_factor=oversampling,
     random_size=correlation.n_random,
     bao_angle=correlation.bao_angle,

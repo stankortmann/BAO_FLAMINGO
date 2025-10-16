@@ -139,7 +139,7 @@ class coordinate_tools:
         phi = coords[:, 1]
 
         dec = 90.0 - theta
-        ra = np.mod(phi, 360.0)
+        ra = phi % 360
 
         coords[:, 0] = ra
         coords[:, 1] = dec

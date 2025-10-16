@@ -6,10 +6,12 @@ class Paths:
     simulation: str
     soap_hbt_subpath: str
     redshift_file: str
+    snapshot_number:int
 
 @dataclass
-class Snapshot:
-    number: int
+class Slicing:
+    method:str
+    n_slices:int
     
 
 @dataclass
