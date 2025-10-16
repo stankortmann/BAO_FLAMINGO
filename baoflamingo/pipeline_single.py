@@ -61,7 +61,7 @@ def run_pipeline_single(cfg):
         Tcmb=cosmology.Tcmb0.value,
         Neff=cosmology.Neff,
         redshift=redshift,
-        n_sigma=2
+        n_sigma=0.1
     )
     print("Cosmology set up")
     print("Radius is",cosmo.comoving_distance)
@@ -77,10 +77,14 @@ def run_pipeline_single(cfg):
         observer = centre.copy()
         max_angle_plus_dr = 0
         print("Complete spherical slice is possible")
+    
+    #We have to take a look at this!
+    
     else:
         complete_sphere = False
         min_x = np.ceil(cosmo.plus_dr)
         max_angle_plus_dr = np.arcsin(box_size_float / (2 * cosmo.plus_dr))
+        
         max_x = box_size_float + cosmo.minus_dr * np.cos(max_angle_plus_dr)
         shift_observer_xyz = np.random.uniform(low=min_x, high=max_x, size=1)
         x_y_z_list = np.random.randint(3, size=1)
@@ -119,10 +123,11 @@ def run_pipeline_single(cfg):
     gc.collect()
     
     # --- Apply radial & luminosity mask ---
-    radial_luminosity_mask = filters.radial_luminosity(d_coords_sph)
+    #radial_luminosity_mask = filters.radial_luminosity(d_coords_sph)
+    radial_central_mask=filters.radial_central(d_coords_sph)
     gc.collect()
-    #overwrite to save memory
-    d_coords_sph = d_coords_sph[radial_luminosity_mask][:, 1:]
+    #overwrite to save memory, change this
+    d_coords_sph = d_coords_sph[radial_central_mask][:, 1:]
     
     data_size = np.shape(d_coords_sph)[0]
     if data_size < 2:

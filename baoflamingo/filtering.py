@@ -28,6 +28,8 @@ class filtering_tools:
         #empty mask if filters are not applied
         self.empty_mask=np.ones(
             len(soap_file.bound_subhalo.stellar_mass),dtype=bool)
+        
+        
 
         
 
@@ -44,12 +46,13 @@ class filtering_tools:
 
     def _central_filter(self,mask):
         
-        full_mask=self.file.input_halos.is_central
+        central_mask=self.file.input_halos.is_central.value
+        full_mask= (central_mask==0)
         return full_mask
 
     
     def _stellar_mass_filter(self,mask):
-        stellar_mass=self.file.bound_subhalo.stellar_mass
+        stellar_mass=self.file.bound_subhalo.stellar_mass[mask]
         full_mask= (stellar_mass>=stellar_mass_cutoff)
         return full_mask
 
@@ -131,3 +134,13 @@ class filtering_tools:
     
     def luminosity_filter(self):
         return self._luminosity_filter(self.empty_mask)
+
+    def radial_central(self,coordinates):
+
+        radial_mask=self.radial_filter(coordinates)
+
+        central_mask=self._central_filter(mask=radial_mask)
+
+        full_mask = central_mask & radial_mask
+
+        return full_mask

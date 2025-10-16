@@ -89,8 +89,8 @@ class correlation_tools_treecorr:
             area_sr = 4 * np.pi * u.sr  # full sphere in steradians
         else:
             # Spherical cap area in steradians
-            area_sr = 2 * self.max_angle * (1 - np.cos(self.max_angle)) * u.sr
-
+            area_sr = 2 * self.max_angle_incomplete * (1 - np.cos(self.max_angle_incomplete)) * u.sr
+        
         # Convert steradians to square degrees
         area_sqdeg = area_sr.to(u.deg**2)
         density = n_galaxies / area_sqdeg
@@ -154,7 +154,11 @@ class correlation_tools_treecorr:
         #Secure type as float, double check
         coords = np.asarray(coords, dtype=float)
 
-
+        """
+        print(np.max(coords_sph[:,0]),np.max(coords_sph[:,1]))
+        print(np.min(coords_sph[:,0]),np.min(coords_sph[:,1]))
+        print(np.average(coords_sph[:,0]),np.average(coords_sph[:,1]))
+        """
         if self.patch_centers is None: #for the random catalogue patch_centers is empty
             return treecorr.Catalog(x=coords[:,0],
                                     y=coords[:,1],
@@ -224,8 +228,7 @@ class correlation_tools_treecorr:
         dd.calculateXi(rr=self.rr,dr=dr)
         mean=dd.xi
         std=dd.varxi
-        print(mean)
-        print(std)
+        
 
         #for now only using the diagonal elements, later on maybe using the covariances!!!
         

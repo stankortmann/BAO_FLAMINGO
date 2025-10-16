@@ -2,9 +2,9 @@ paths:
   directory: "/cosma8/data/dp004/flamingo/Runs/" #do not touch!
   soap_hbt_subpath: "SOAP-HBT/halo_properties_00" #do not touch!
 
-  simulation: "L1000N1800/HYDRO_FIDUCIAL" #only thouch this part!
+  simulation: "L1000N3600/HYDRO_FIDUCIAL" #only thouch this part!
   redshift_file: "output_list.txt"
-  snapshot_number: 74 #for numbers below 10, fill in 06 or 07, not 6 and 7
+  snapshot_number: 77 #for numbers below 10, fill in 06 or 07, not 6 and 7
   output_directory: "results_npz" #full path if necessary
 
 slicing:
@@ -13,13 +13,13 @@ slicing:
   
 
 distance: # in Mpc
-  min: 10
+  min: 5
   max: 200
   type: euclidean #or euclidean
 
 random_catalog:
   seed: 12345 #random number, not very interesting to look at , We could later add None to recreate ranodms
-  oversampling: 4 #the oversampling factor of the randoms
+  oversampling: 5 #the oversampling factor of the randoms
 
 filters:
   central_filter: off
@@ -27,13 +27,13 @@ filters:
   stellar_mass_cutoff: 70 #percentile that is excluded
   luminosity_filter: on
   band: r  #observed band
-  m_cutoff: 20 #apparent band magnitude for the observer
+  m_cutoff: 10 #apparent band magnitude for the observer
   
 
 plotting:
-  bins: 100
+  bins: 50
   leafsize: 100  #might be deleted later on, only useful in old_correlation.py
 
 statistics:
-  variance_method: jackknife #or bootstrap
-  n_patches: 100
+  variance_method: shot #bootstrap,jackknife,simple(n_patches=1)
+  n_patches: 1

@@ -10,8 +10,8 @@ import smooth_fitting as sf
 # ============================================================
 
 # Simulation parameters
-simulation = "L1000N1800/HYDRO_FIDUCIAL"
-redshift = 76
+simulation = "L1000N3600/HYDRO_FIDUCIAL"
+redshift = 77
 
 # Plot settings
 angles=False
@@ -48,7 +48,9 @@ except FileNotFoundError:
 bin_centers = data["bin_centers"]
 bao_angle = data["bao_angle"]
 ls_avg = data["ls_avg"]
+ls_std =data["ls_std"]
 print(ls_avg)
+print(ls_std)
 print(bin_centers)
 
 # Optional: standard deviation if needed
@@ -59,7 +61,7 @@ print(bin_centers)
 # ============================================================
 
 # Define your range
-angle_min, angle_max = 0, 2000 # degrees (or Mpc if angular=False)
+angle_min, angle_max = 0, 250 # degrees (or Mpc if angular=False)
 
 # Create a boolean mask for the range
 mask = (bin_centers >= angle_min) & (bin_centers <= angle_max)
@@ -67,6 +69,7 @@ mask = (bin_centers >= angle_min) & (bin_centers <= angle_max)
 # Apply mask to your arrays
 bin_centers_plot = bin_centers[mask]
 ls_avg_plot = ls_avg[mask]
+ls_std_plot=ls_std[mask]
 # ls_std_plot = ls_std[mask]  # if using std
 
 
@@ -77,14 +80,14 @@ ls_avg_plot = ls_avg[mask]
 plt.figure(figsize=(8, 6))
 
 # Main correlation function
-plt.plot( bin_centers_plot,ls_avg_plot, label="Landy–Szalay", lw=1.8)
+#plt.scatter( bin_centers_plot,ls_avg_plot, label="Landy–Szalay")
 
 # Optional error bars (uncomment if you have std)
-# plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,
-#              label="Landy–Szalay (error)", alpha=0.7, ecolor="r", fmt="o")
+plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,
+           label="Landy–Szalay (error)", alpha=0.7, ecolor="r", fmt="x")
 
 # Vertical line marking the BAO angle
-plt.axvline(bao_angle, color="g", linestyle="--", label=f"BAO angle = {bao_angle:.2f}")
+plt.axvline(bao_angle*2, color="g", linestyle="--", label=f"BAO angle = {bao_angle:.2f}")
 
 # ============================================================
 # --- OPTIONAL FITTING ---
