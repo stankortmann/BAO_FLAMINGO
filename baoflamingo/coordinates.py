@@ -129,17 +129,17 @@ class coordinate_tools:
         ----------
         coords : np.ndarray, shape (N, 2)
             Input array where:
-                coords[:, 0] = theta (degrees)
-                coords[:, 1] = phi (degrees)
+                coords[:, 0] = theta (radians)
+                coords[:, 1] = phi (radians)
             After this function:
-                coords[:, 0] = RA (degrees)
-                coords[:, 1] = Dec (degrees)
+                coords[:, 0] = RA (radians)
+                coords[:, 1] = Dec (radians
         """
         theta = coords[:, 0]
         phi = coords[:, 1]
 
-        dec = 90.0 - theta
-        ra = phi % 360
+        dec = np.pi/2 - theta
+        ra = phi 
 
         coords[:, 0] = ra
         coords[:, 1] = dec

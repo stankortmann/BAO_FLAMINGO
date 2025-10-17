@@ -13,20 +13,32 @@ import baoflamingo.statistics as stat
 import baoflamingo.cosmology as cs
 from baoflamingo.coordinates import coordinate_tools
 
-# --- Memory monitor ---
-def monitor_memory(interval=30):
-    """Print memory usage every `interval` seconds."""
+# --- Memory and monitor ---
+
+def monitor_system(interval=30):
+    """
+    Print CPU and memory usage every `interval` seconds.
+    - CPU usage: percentage of total CPU
+    - Memory usage: resident set size (RSS) of the current process in GB
+    """
     process = psutil.Process(os.getpid())
     while True:
+        # CPU usage over the last interval
+        cpu_percent = psutil.cpu_percent(interval=None)  # instantaneous
+        # Per-process memory usage
         mem_gb = process.memory_info().rss / (1024 ** 3)
-        print(f"[MEMORY MONITOR] {mem_gb:.3f} GB")
+        
+        print(f"[SYSTEM MONITOR] CPU: {cpu_percent:.1f}% | Memory: {mem_gb:.3f} GB")
+ 
         time.sleep(interval)
+
+
 
 def run_pipeline_single(cfg):
     """Main pipeline using the YAML config object."""
     
     # Start memory monitor
-    monitor_thread = threading.Thread(target=monitor_memory, daemon=True)
+    monitor_thread = threading.Thread(target=monitor_system, daemon=True)
     monitor_thread.start()
     
     # --- Paths ---
@@ -61,7 +73,7 @@ def run_pipeline_single(cfg):
         Tcmb=cosmology.Tcmb0.value,
         Neff=cosmology.Neff,
         redshift=redshift,
-        n_sigma=0.1
+        n_sigma=cfg.slicing.n_sigma
     )
     print("Cosmology set up")
     print("Radius is",cosmo.comoving_distance)
@@ -86,10 +98,10 @@ def run_pipeline_single(cfg):
         max_angle_plus_dr = np.arcsin(box_size_float / (2 * cosmo.plus_dr))
         
         max_x = box_size_float + cosmo.minus_dr * np.cos(max_angle_plus_dr)
-        shift_observer_xyz = np.random.uniform(low=min_x, high=max_x, size=1)
-        x_y_z_list = np.random.randint(3, size=1)
+        shift_observer_xyz = float(np.random.uniform(low=min_x, high=max_x, size=1))
+        axis = int(np.random.randint(3, size=1))
         observer = centre.copy()
-        observer[x_y_z_list] = shift_observer_xyz
+        observer[axis] = shift_observer_xyz
         shift = np.array([0, 0, 0])
         print("No complete spherical slice is possible")
     

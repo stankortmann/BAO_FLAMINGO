@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import UnivariateSpline
 
 #own modules!
 import statistics as stat
@@ -11,7 +12,7 @@ import smooth_fitting as sf
 
 # Simulation parameters
 simulation = "L1000N3600/HYDRO_FIDUCIAL"
-redshift = 77
+redshift = 76
 
 # Plot settings
 angles=False
@@ -46,7 +47,7 @@ except FileNotFoundError:
     raise FileNotFoundError(f"File not found: {filename_histogram}")
 
 bin_centers = data["bin_centers"]
-bao_angle = data["bao_angle"]
+bao_angle = data["bao_distance"]
 ls_avg = data["ls_avg"]
 ls_std =data["ls_std"]
 print(ls_avg)
@@ -80,14 +81,14 @@ ls_std_plot=ls_std[mask]
 plt.figure(figsize=(8, 6))
 
 # Main correlation function
-#plt.scatter( bin_centers_plot,ls_avg_plot, label="Landy–Szalay")
+plt.scatter(bin_centers_plot,ls_avg_plot, label="Landy–Szalay")
 
 # Optional error bars (uncomment if you have std)
-plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,
-           label="Landy–Szalay (error)", alpha=0.7, ecolor="r", fmt="x")
+#plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,
+#           label="Landy–Szalay (error)", alpha=0.7, ecolor="r", fmt="x")
 
 # Vertical line marking the BAO angle
-plt.axvline(bao_angle*2, color="g", linestyle="--", label=f"BAO angle = {bao_angle:.2f}")
+plt.axvline(bao_angle, color="g", linestyle="--", label=f"BAO angle = {bao_angle:.2f}")
 
 # ============================================================
 # --- OPTIONAL FITTING ---

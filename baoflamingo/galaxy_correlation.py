@@ -11,7 +11,7 @@ class correlation_tools_treecorr:
     def __init__(self, cosmology,
                  min_distance=0, max_distance=250, n_random=50000,
                  max_angle=0.1, complete_sphere=True,
-                 bins=100, distance_type='euclidean', seed=12345,
+                 bins=10, distance_type='euclidean', seed=12345,
                  variance_method='jackknife',n_patches=100):
         
         self.n_random = n_random
@@ -26,7 +26,7 @@ class correlation_tools_treecorr:
         self.max_chord=max_distance/self.radius
         self.bao_chord=cosmology.bao_distance/self.radius
         self.bao_angle=coordinate_tools.chord_to_angular_degrees(self.bao_chord)*u.deg
-        self.bins=bins
+        
         
         
         
@@ -159,7 +159,8 @@ class correlation_tools_treecorr:
         print(np.min(coords_sph[:,0]),np.min(coords_sph[:,1]))
         print(np.average(coords_sph[:,0]),np.average(coords_sph[:,1]))
         """
-        if self.patch_centers is None: #for the random catalogue patch_centers is empty
+        #for the random catalogue patch_centers is empty
+        if self.patch_centers is None: 
             return treecorr.Catalog(x=coords[:,0],
                                     y=coords[:,1],
                                     z=coords[:,2],

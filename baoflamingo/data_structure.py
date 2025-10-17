@@ -13,6 +13,7 @@ class Paths:
 class Slicing:
     method:str
     n_slices:int
+    n_sigma: float
     
 
 @dataclass
