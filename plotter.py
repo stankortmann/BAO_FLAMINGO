@@ -82,6 +82,21 @@ plt.figure(figsize=(8, 6))
 
 # Main correlation function
 plt.scatter(bin_centers_plot,ls_avg_plot, label="Landy–Szalay")
+spline = UnivariateSpline(bin_centers_plot, ls_avg_plot, s=4)
+baseline = spline(bin_centers_plot)
+
+# compute residual
+xi_residual = ls_avg_plot - baseline
+
+
+
+peak_idx = np.argmax(xi_residual)
+r_bao = bin_centers_plot[peak_idx]
+xi_bao = xi_residual[peak_idx]
+plt.plot(bin_centers_plot, baseline, color='r', linestyle='--', label='Smooth baseline')
+
+print(f"BAO peak at r ~ {r_bao:.2f} Mpc with ξ ~ {xi_bao:.4f}")
+print('The expected BAO peak is at',bao_angle)
 
 # Optional error bars (uncomment if you have std)
 #plt.errorbar(bin_centers_plot, ls_avg_plot, yerr=ls_std_plot,

@@ -136,10 +136,10 @@ def run_pipeline_single(cfg):
     
     # --- Apply radial & luminosity mask ---
     #radial_luminosity_mask = filters.radial_luminosity(d_coords_sph)
-    radial_central_mask=filters.radial_central(d_coords_sph)
+    radial_luminosity_mask=filters.radial_luminosity(d_coords_sph)
     gc.collect()
     #overwrite to save memory, change this
-    d_coords_sph = d_coords_sph[radial_central_mask][:, 1:]
+    d_coords_sph = d_coords_sph[radial_luminosity_mask][:, 1:]
     
     data_size = np.shape(d_coords_sph)[0]
     if data_size < 2:

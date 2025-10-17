@@ -70,6 +70,8 @@ class filtering_tools:
         # Filter out galaxies with any zero luminosity (or just in the u-band)
         nonzero_mask = lum[:, bands.index('u')] != 0
         lum = lum[nonzero_mask, :]
+        pass_fraction = np.count_nonzero(nonzero_mask) / nonzero_mask.size * 100
+        print(f"Pass percentage after stellar mass filter: {pass_fraction:.2f}%")
 
         #loading in luminosities in all bands
         #we have to convert to absolute magnitudes in each band

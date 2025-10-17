@@ -1,6 +1,7 @@
 import numpy as np
 import unyt as u
 import matplotlib.pyplot as plt
+from scipy.interpolate import UnivariateSpline
 
 from baoflamingo.cosmology import cosmo_tools
 from baoflamingo.coordinates import coordinate_tools
@@ -60,9 +61,9 @@ coords_total = np.vstack([coords_original, coords_bump])
 # --- Step 3: initialize correlation tool ---
 corr = correlation_tools_treecorr(
     cosmology=cosmo,
-    min_distance=0,     # Mpc
+    min_distance=20,     # Mpc
     max_distance=100,   # Mpc
-    n_random=50*n_gal,
+    n_random=20*n_gal,
     bins=50,
     distance_type='euclidean',
     seed=seed,
@@ -78,7 +79,26 @@ print("Mean xi:", mean_xi)
 print("Std xi:", std_xi)
 print("Bin centers:", corr.bin_centers)
 
+# --- Step 6: Fit Spline and try to find bump ---
+spline = UnivariateSpline(corr.bin_centers, mean_xi, s=1)
+baseline = spline(corr.bin_centers)
+
+# compute residual
+xi_residual = mean_xi - baseline
+
+
+
+peak_idx = np.argmax(xi_residual)
+r_bao = corr.bin_centers[peak_idx]
+xi_bao = xi_residual[peak_idx]
+
+
+print(r_bao)
+
+
+
 plt.figure(figsize=(7,4))
+plt.plot(corr.bin_centers, baseline, color='r', linestyle='--', label='Smooth baseline')
 plt.errorbar(
     corr.bin_centers, mean_xi,
     yerr=std_xi,
