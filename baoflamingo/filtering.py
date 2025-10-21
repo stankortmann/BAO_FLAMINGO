@@ -86,7 +86,7 @@ class filtering_tools:
          # Interpolate in log-log space
          #use scipy for interpolation, much faster than numpy
 
-        
+         
         interp_func = interp1d(
                     log_lambda_eff,
                     M_ab_bands.T,  # shape (N_bands, N_galaxies), transposed
@@ -102,6 +102,12 @@ class filtering_tools:
         #calculate apparent magnitude in the selected band
         D_L = self.cosmo.luminosity_distance *1e6 # convert Mpc → pc
         m = M_ab_rest + 5 * np.log10(D_L)  -5
+
+        print('statistics of apparent magnitude:')
+        print('maximum:',np.max(m))
+        print('minimum:',np.min(m))
+        print('average:',np.average(m))
+        print('median:',np.median(m))
 
         m_mask=(m<=self.m_cutoff)
 

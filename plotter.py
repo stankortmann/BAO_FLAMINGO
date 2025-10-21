@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
+import unyt as u
+import h5py
 
 #own modules!
 import statistics as stat
@@ -11,15 +13,10 @@ import smooth_fitting as sf
 # ============================================================
 
 # Simulation parameters
-simulation = "L1000N3600/HYDRO_FIDUCIAL"
-redshift = 76
+simulation = "L1000N0900/HYDRO_FIDUCIAL"
+redshift = 64
 
-# Plot settings
-angles=False
-if angles:
-    distance_type='angular' #or 'euclidean' 
-else:
-    distance_type='euclidean'
+
  
 show_fit = False         # whether to fit & plot smooth models
 save_plot = True         # whether to save the figure as PNG
@@ -32,27 +29,33 @@ safe_simulation = simulation.replace("/", "_")
 sim_name = f"{safe_simulation}_snapshot_{redshift}"
 
 
-filename_histogram = f"results_npz/single_slice_{distance_type}_{sim_name}.npz"
+filename_histogram = f"results_npz/single_slice_{sim_name}.hdf5"
 
 # PNG file name for output
-png_filename = filename_histogram.replace(".npz", "_plot.png")
+png_filename = filename_histogram.replace(".hdf5", "_plot.png")
 
 # ============================================================
 # --- LOAD DATA ---
 # ============================================================
 
-try:
-    data = np.load(filename_histogram)
-except FileNotFoundError:
-    raise FileNotFoundError(f"File not found: {filename_histogram}")
+
+# Dictionary to hold the loaded arrays
+data = {}
+
+with h5py.File(filename_histogram, "r") as f:
+    for key in f.keys():
+        dset = f[key]
+        if "units" in dset.attrs:  # if the dataset has units
+            data[key] = dset[()] * u.Unit(dset.attrs["units"])
+        else:  # unitless
+            data[key] = dset[()]
 
 bin_centers = data["bin_centers"]
-bao_angle = data["bao_distance"]
-ls_avg = data["ls_avg"]
-ls_std =data["ls_std"]
-print(ls_avg)
-print(ls_std)
-print(bin_centers)
+bao_angle = data["bao"]
+ls_avg = data["avg_ls"]
+ls_std =data["std_ls"]
+distance_type=data["distance_type"]
+
 
 # Optional: standard deviation if needed
 # ls_std = data["ls_std_bs"]
@@ -62,8 +65,8 @@ print(bin_centers)
 # ============================================================
 
 # Define your range
-angle_min, angle_max = 0, 250 # degrees (or Mpc if angular=False)
-
+angle_min, angle_max = 0*u.Mpc, 250*u.Mpc # degrees (or Mpc if angular=False)
+print(angle_min,bin_centers[0])
 # Create a boolean mask for the range
 mask = (bin_centers >= angle_min) & (bin_centers <= angle_max)
 
@@ -82,13 +85,14 @@ plt.figure(figsize=(8, 6))
 
 # Main correlation function
 plt.scatter(bin_centers_plot,ls_avg_plot, label="Landy–Szalay")
-spline = UnivariateSpline(bin_centers_plot, ls_avg_plot, s=4)
+spline = UnivariateSpline(bin_centers_plot, ls_avg_plot, s=20)
 baseline = spline(bin_centers_plot)
 
 # compute residual
 xi_residual = ls_avg_plot - baseline
 
-
+mask_bao = (bin_centers.value >= bao_angle.value-10) &\
+ (bin_centers.value <= bao_angle.value+10)
 
 peak_idx = np.argmax(xi_residual)
 r_bao = bin_centers_plot[peak_idx]
@@ -126,8 +130,8 @@ if show_fit:
 # --- LABELS & SAVE ---
 # ============================================================
 
-plt.xlabel("Angle (degrees)" if angles else "Separation (Mpc)")
-plt.ylabel("Correlation")
+plt.xlabel(f"r [{bin_centers_plot.units}]")
+plt.ylabel("ξ(r)")
 plt.title(sim_name)
 plt.legend()
 plt.grid(alpha=0.3)

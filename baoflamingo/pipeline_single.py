@@ -5,6 +5,8 @@ import os
 import time
 import gc
 import threading
+import h5py
+import unyt as u
 
 # Our own modules
 import baoflamingo.galaxy_correlation as gal_cor
@@ -80,29 +82,25 @@ def run_pipeline_single(cfg):
     del metadata
     gc.collect()
     
-    print("Slice thickness:", cosmo.delta_dr, "Mpc")
+    print("Slice thickness:", cosmo.delta_dr)
     
     # --- Observer position ---
     if cosmo.plus_dr < 0.5 * box_size_float:
         complete_sphere = True
         shift = np.random.uniform(-0.5*box_size_float, 0.5*box_size_float, size=3)
-        observer = centre.copy()
         max_angle_plus_dr = 0
+        observer = centre.copy()
+        
         print("Complete spherical slice is possible")
     
     #We have to take a look at this!
     
     else:
         complete_sphere = False
-        min_x = np.ceil(cosmo.plus_dr)
-        max_angle_plus_dr = np.arcsin(box_size_float / (2 * cosmo.plus_dr))
-        
-        max_x = box_size_float + cosmo.minus_dr * np.cos(max_angle_plus_dr)
-        shift_observer_xyz = float(np.random.uniform(low=min_x, high=max_x, size=1))
-        axis = int(np.random.randint(3, size=1))
+        shift = np.random.uniform(-0.5*box_size_float, 0.5*box_size_float, size=3)
+        max_angle_plus_dr = np.arcsin(box_size_float / (2 * cosmo.plus_dr))*u.rad
         observer = centre.copy()
-        observer[axis] = shift_observer_xyz
-        shift = np.array([0, 0, 0])
+        observer[0] += cosmo.comoving_distance.value
         print("No complete spherical slice is possible")
     
     # --- Filtering ---
@@ -150,10 +148,12 @@ def run_pipeline_single(cfg):
     
     # --- Correlation ---
     n_random = int(cfg.random_catalog.oversampling * data_size)
-    correlation = gal_cor.correlation_tools_treecorr(
+    correlation = gal_cor.correlation_tools_treecorr_test(
             cosmology=cosmo,
-            min_distance=cfg.distance.min,
-            max_distance=cfg.distance.max, 
+            #include unyt units
+            min_distance=cfg.distance.min*u.Mpc,
+            max_distance=cfg.distance.max*u.Mpc,
+
             n_random=n_random,
             max_angle=max_angle_plus_dr,
             complete_sphere=complete_sphere,
@@ -165,32 +165,48 @@ def run_pipeline_single(cfg):
     
     )
     
-    mean_ls,std_ls = correlation.landy_szalay(coords=d_coords_sph)
+    avg_ls,std_ls = correlation.landy_szalay(coords=d_coords_sph)
     survey_density = correlation.galaxy_density(data_size)
-    print("Survey density (#/deg^2):", survey_density)
+    print("Survey density :", survey_density)
     
     
-    # --- Save output ---
-    # Define the relative output directory
+    # --- Save output using HDF5 ---
     output_filename = os.path.join(
         cfg.paths.output_directory,
-    f"single_slice_{cfg.distance.type}_{safe_simulation}_snapshot_{redshift_number}.npz")
-    np.savez(
-        output_filename,
-        bin_centers=correlation.bin_centers,
-        bin_width=correlation.bin_width,
-        bins=correlation.bins,
-        thickness_slice=cosmo.delta_dr,
-        survey_density=survey_density,
-        oversampling_factor=cfg.random_catalog.oversampling,
-        random_size=correlation.n_random,
-        bao_angle=correlation.bao_angle,
-        bao_distance=cosmo.bao_distance,
-        min_distance=cfg.distance.min,
-        max_distance=cfg.distance.max,
-        ls_avg=mean_ls,
-        ls_std=std_ls
+        f"single_slice_{safe_simulation}_snapshot_{redshift_number}.hdf5"
     )
-    
+
+    with h5py.File(output_filename, "w") as f:
+
+        # --- Unitless arrays / scalars ---
+        f.create_dataset("distance_type", data=cfg.distance.type)
+        f.create_dataset("bins", data=correlation.bins)
+        f.create_dataset("oversampling_factor", data=cfg.random_catalog.oversampling)
+        f.create_dataset("random_size", data=correlation.n_random)
+        f.create_dataset("avg_ls", data=avg_ls)
+        f.create_dataset("std_ls", data=std_ls)
+
+        # --- Arrays / scalars with units ---
+        f.create_dataset("thickness_slice", data=cosmo.delta_dr.value)
+        f["thickness_slice"].attrs["units"] = str(cosmo.delta_dr.units)
+
+        f.create_dataset("survey_density", data=survey_density.value)
+        f["survey_density"].attrs["units"] = str(survey_density.units)
+
+        f.create_dataset("bao", data=correlation.bao.value)
+        f["bao"].attrs["units"] = str(correlation.bao.units)
+
+        f.create_dataset("min", data=correlation.min.value)
+        f["min"].attrs["units"] = str(correlation.min.units)
+
+        f.create_dataset("max", data=correlation.max.value)
+        f["max"].attrs["units"] = str(correlation.max.units)
+
+        f.create_dataset("bin_centers", data=correlation.bin_centers.value)
+        f["bin_centers"].attrs["units"] = str(correlation.bin_centers.units)
+
+        f.create_dataset("bin_width", data=correlation.bin_width.value)
+        f["bin_width"].attrs["units"] = str(correlation.bin_width.units)
+
     print("Saved single-slice Landy-Szalay histogram to", output_filename)
 

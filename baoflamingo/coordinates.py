@@ -9,7 +9,7 @@ import unyt as u
 
 
 @njit(parallel=True)
-def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0, apply_periodic=True):
+def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0):
     """
     Convert Cartesian (x, y, z) positions to spherical (r, theta, phi)
     relative to a given observer, optionally applying periodic boundaries.
@@ -38,16 +38,12 @@ def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0, apply
 
         
 
-        # shift coordinates if the sphere is complete, if not nothing happens
-        dx = x - shift[0] 
-        dy = y - shift[1] 
-        dz = z - shift[2]
+        # shift coordinates randdomly and apply boundary conditions
+        dx = (x - shift[0])%box_size 
+        dy = (y - shift[1])%box_size  
+        dz = (z - shift[2])%box_size 
 
-        # Apply periodic boundary conditions if needed
-        if apply_periodic:
-            dx = dx % box_size
-            dy = dy % box_size
-            dz = dz % box_size
+       
 
         # Shift to be relative to the observer
         dx = dx - observer[0] 
@@ -77,7 +73,7 @@ class coordinate_tools:
         # Compute spherical coordinates immediately and store
         self.spherical = cartesian_to_spherical_numba(
             coordinates, shift, observer,
-            box_size=box_size, apply_periodic=complete_sphere
+            box_size=box_size
         )
 
 
@@ -92,7 +88,7 @@ class coordinate_tools:
         x = np.sin(theta) * np.cos(phi)
         y = np.sin(theta) * np.sin(phi)
         z = np.cos(theta)
-        return np.column_stack((x, y, z))
+        return np.column_stack((x, y, z)) #dimensionless
 
     @staticmethod
     def chord_to_angular_degrees(chord_lengths):
@@ -114,7 +110,51 @@ class coordinate_tools:
         #clip for numerical stability
         alpha_rad = 2.0 * np.arcsin(np.clip(chord_lengths / 2.0, 0.0, 1.0)) 
         alpha_degrees= np.rad2deg(alpha_rad)
-        return alpha_degrees
+        return alpha_degrees*u.deg
+
+    @staticmethod
+    def chord_to_angular_radians(chord_lengths):
+
+        """
+        Convert chord lengths on a unit sphere to angular separations in radians.
+        
+        Parameters
+        ----------
+        chord_lengths : array-like
+            Chord lengths (0 to 2)
+        
+        Returns
+        -------
+        alpha : array-like
+            Angular separations in radians (0 to pi)
+        """
+        chord_lengths = np.asarray(chord_lengths)
+        #clip for numerical stability
+        alpha_rad = 2.0 * np.arcsin(np.clip(chord_lengths / 2.0, 0.0, 1.0)) 
+        
+        return alpha_rad*u.rad
+
+
+    @staticmethod
+    def angular_radians_to_chord(alpha_rad):
+        """
+        Convert angular separations in radians to chord lengths on a unit sphere.
+        
+        Parameters
+        ----------
+        alpha_rad : array-like
+            Angular separations in radians (0 to pi)
+        
+        Returns
+        -------
+        chord_lengths : array-like
+            Chord lengths (0 to 2)
+        """
+        alpha_rad = np.asarray(alpha_rad)
+        chord_lengths = 2.0 * np.sin(alpha_rad / 2.0)
+        return chord_lengths
+
+        
     
     @staticmethod
     def theta_phi_to_ra_dec(coords):
@@ -144,5 +184,5 @@ class coordinate_tools:
         coords[:, 0] = ra
         coords[:, 1] = dec
         
-        return coords #ra,dec
+        return coords*u.rad #ra,dec
     

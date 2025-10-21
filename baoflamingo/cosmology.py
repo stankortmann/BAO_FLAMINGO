@@ -3,6 +3,7 @@ import scipy.spatial as ss
 from scipy.integrate import quad
 from astropy.constants import c
 from scipy.optimize import curve_fit
+import unyt as u
 
 
 
@@ -80,21 +81,21 @@ class cosmo_tools:
         
         integral, _ = quad(lambda zp: 1.0 / self.E(zp), 0.0, z, epsrel=1e-6)
         Dc = (self.c_km_s / self.H0) * integral
-        return Dc
+        return Dc*u.Mpc
     def _luminosity_distance(self):
         """
         Compute luminosity distance D_L(z) in Mpc.
         """
         Dc = self.comoving_distance
         Dl = (1 + self.redshift) * Dc
-        return Dl
+        return Dl*u.Mpc
     def _angular_diameter_distance(self):
         """
         Compute angular diameter distance D_A(z) in Mpc.
         """
         Dc = self.comoving_distance
         Da = Dc / (1 + self.redshift)
-        return Da
+        return Da*u.Mpc
 
     def _bao_sound_horizon(self):
         """
@@ -113,4 +114,4 @@ class cosmo_tools:
             return c_s(zp) / (self.H0 *self.E(zp))
 
         r_d, _ = quad(integrand, self.z_drag, 1e7, epsrel=1e-6, limit=200)
-        return r_d
+        return r_d*u.Mpc

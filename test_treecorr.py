@@ -5,7 +5,7 @@ from scipy.interpolate import UnivariateSpline
 
 from baoflamingo.cosmology import cosmo_tools
 from baoflamingo.coordinates import coordinate_tools
-from baoflamingo.galaxy_correlation import correlation_tools_treecorr
+from baoflamingo.galaxy_correlation import correlation_tools_treecorr_test
 
 # --- Step 1: define a simple cosmology ---
 cosmo = cosmo_tools(
@@ -59,7 +59,7 @@ coords_total = np.vstack([coords_original, coords_bump])
 
 
 # --- Step 3: initialize correlation tool ---
-corr = correlation_tools_treecorr(
+corr = correlation_tools_treecorr_test(
     cosmology=cosmo,
     min_distance=20,     # Mpc
     max_distance=100,   # Mpc
@@ -101,7 +101,7 @@ plt.figure(figsize=(7,4))
 plt.plot(corr.bin_centers, baseline, color='r', linestyle='--', label='Smooth baseline')
 plt.errorbar(
     corr.bin_centers, mean_xi,
-    yerr=std_xi,
+    yerr=std_xi*5,
     fmt='o',             # marker type: circle
     markersize=3,        # small marker
     elinewidth=1,        # thickness of error bars
@@ -109,12 +109,14 @@ plt.errorbar(
     color='blue',
     label='ξ(r)'
 )
-plt.axvline(r_bump, color="g", linestyle="--")
+
+r_bump_ang=coordinate_tools.chord_to_angular_radians(r_bump/D_c)
+plt.axvline(r_bump_ang, color="g", linestyle="--")
 #plt.xscale('log')
-plt.xlabel("r [Mpc]")
+plt.xlabel(f"r [{corr.bin_centers.units}]")
 plt.ylabel("ξ(r)")
 plt.title("Synthetic test correlation")
 plt.grid(True)
-plt.savefig("test_plot.png", dpi=300)
+plt.savefig("test_plot_radec.png", dpi=300)
 plt.show()
 exit()
