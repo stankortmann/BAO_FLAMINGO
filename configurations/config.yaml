@@ -4,13 +4,14 @@ paths:
 
   simulation: L1000N3600/HYDRO_FIDUCIAL #only thouch this part!
   redshift_file: output_list.txt
+  #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
   snapshot_number: 69 #for numbers below 10: fill in 06 or 07, not 6 and 7
   output_directory: results_npz #full path if necessary
 
 slicing:
   method: single #single or multiple
   n_slices: 20  #if you choose for multiple, this measures cosmic variance
-  n_sigma: 3 #delta_z= n_sigma *sigma(z), so the thickness of the spherical slice
+  n_sigma: 1 #delta_z= n_sigma *sigma(z), so the thickness of the spherical slice
   
 
 distance: # in Mpc

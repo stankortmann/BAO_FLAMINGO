@@ -25,8 +25,12 @@ if __name__ == "__main__":
         statistics=ds.Statistics(**cfg_dict['statistics'])
     )
     if cfg.slicing.method=='single':
-        run_pipeline_single(cfg)
-        plot_correlation_single_slice(cfg,show_fit=False, save_plot=True)
+        data_filename=run_pipeline_single(cfg)
+        data_plot=plot_correlation_single_slice(
+            cfg=cfg,
+            filename=data_filename,
+            show_fit=True, #this is the polynomial fit, not the spline
+            save_plot=True)
     
     #Will be implemented later on!
     """ 

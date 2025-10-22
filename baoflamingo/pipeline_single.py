@@ -82,7 +82,7 @@ def run_pipeline_single(cfg):
     del metadata
     gc.collect()
     
-    print("Slice thickness:", cosmo.delta_dr)
+    print("Thickness of slice is:", cosmo.delta_dr)
     
     # --- Observer position ---
     if cosmo.plus_dr < 0.5 * box_size_float:
@@ -168,7 +168,7 @@ def run_pipeline_single(cfg):
     
     )
     
-    avg_ls,std_ls = correlation.landy_szalay(coords=d_coords_sph)
+    ls_avg,ls_std = correlation.landy_szalay(coords=d_coords_sph)
     survey_density = correlation.galaxy_density(data_size)
     print("Survey density :", survey_density)
     
@@ -186,12 +186,12 @@ def run_pipeline_single(cfg):
         f.create_dataset("bins", data=correlation.bins)
         f.create_dataset("oversampling_factor", data=cfg.random_catalog.oversampling)
         f.create_dataset("random_size", data=correlation.n_random)
-        f.create_dataset("avg_ls", data=avg_ls)
-        f.create_dataset("std_ls", data=std_ls)
+        f.create_dataset("ls_avg", data=ls_avg)
+        f.create_dataset("ls_std", data=ls_std)
 
         # --- Arrays / scalars with units ---
-        f.create_dataset("thickness_slice", data=cosmo.delta_dr.value)
-        f["thickness_slice"].attrs["units"] = str(cosmo.delta_dr.units)
+        f.create_dataset("slice_thickness", data=cosmo.delta_dr.value)
+        f["slice_thickness"].attrs["units"] = str(cosmo.delta_dr.units)
 
         f.create_dataset("survey_density", data=survey_density.value)
         f["survey_density"].attrs["units"] = str(survey_density.units)
@@ -212,4 +212,5 @@ def run_pipeline_single(cfg):
         f["bin_width"].attrs["units"] = str(correlation.bin_width.units)
 
     print("Saved single-slice Landy-Szalay histogram to", output_filename)
+    return output_filename #for plotting in the same pipeline!
 

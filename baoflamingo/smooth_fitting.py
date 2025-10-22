@@ -1,3 +1,6 @@
+import numpy as np
+from scipy.optimize import curve_fit
+
 def fit_smooth_correlation(theta, w_theta, theta_min=None, theta_max=None):
     """
     Fit a smooth power-law correlation function w(theta) = A * theta^(-gamma)

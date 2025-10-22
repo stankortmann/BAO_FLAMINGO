@@ -13,8 +13,8 @@ import smooth_fitting as sf
 # ============================================================
 
 # Simulation parameters
-simulation = "L1000N0900/HYDRO_FIDUCIAL"
-redshift = 64
+simulation = "L1000N3600/HYDRO_FIDUCIAL"
+redshift = 69
 
 
  
@@ -85,7 +85,7 @@ plt.figure(figsize=(8, 6))
 
 # Main correlation function
 plt.scatter(bin_centers_plot,ls_avg_plot, label="Landy–Szalay")
-spline = UnivariateSpline(bin_centers_plot, ls_avg_plot, s=20)
+spline = UnivariateSpline(bin_centers_plot, ls_avg_plot, s=0.1)
 baseline = spline(bin_centers_plot)
 
 # compute residual

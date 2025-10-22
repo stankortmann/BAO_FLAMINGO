@@ -371,8 +371,6 @@ class correlation_tools_treecorr_test:
                                       high=max_phi,
                                       size=self.n_random)
 
-        print("Theta min/max:", random_theta.min(), random_theta.max())
-        print("Phi min/max:", random_phi.min(), random_phi.max())
         
         random = np.column_stack((random_theta, random_phi))
         
@@ -390,11 +388,14 @@ class correlation_tools_treecorr_test:
         coords=coordinate_tools.theta_phi_to_ra_dec(coords_sph) 
         
 
+        #This is a check for the incomplete sphere if the boundaries (theta,phi)
+        #for the data and randoms is the same!!!!
+        """
         print("At _catalog() entry, shape:", coords_sph.shape)
         
         print("Theta col min/max:", coords_sph[:,0].min(), coords_sph[:,0].max())
         print("Phi col min/max:", coords_sph[:,1].min(), coords_sph[:,1].max())
-
+        """
         
         
         #for the random catalogue patch_centers is empty, initialize with the npatches
