@@ -46,9 +46,9 @@ def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0):
        
 
         # Shift to be relative to the observer
-        dx = dx - observer[0] 
-        dy = dy - observer[1] 
-        dz = dz - observer[2]
+        dx = observer[0]-dx
+        dy = observer[1]-dy
+        dz = observer[2]-dz
 
         r = np.sqrt(dx*dx + dy*dy + dz*dz)
         theta = np.arccos(dz / r)  # polar angle [0, pi]
@@ -155,34 +155,12 @@ class coordinate_tools:
         return chord_lengths
 
         
-    
     @staticmethod
     def theta_phi_to_ra_dec(coords):
-        """
-        In-place conversion of (theta, phi) in DEGREES to (RA, Dec) in DEGREES.
-        
-        Modifies the input array such that:
-            coords[:, 0] = RA
-            coords[:, 1] = Dec
-
-        Parameters
-        ----------
-        coords : np.ndarray, shape (N, 2)
-            Input array where:
-                coords[:, 0] = theta (radians)
-                coords[:, 1] = phi (radians)
-            After this function:
-                coords[:, 0] = RA (radians)
-                coords[:, 1] = Dec (radians
-        """
-        theta = coords[:, 0]
-        phi = coords[:, 1]
-
+        theta = coords[:,0]
+        phi = coords[:,1]
         dec = np.pi/2 - theta
-        ra = phi 
-
-        coords[:, 0] = ra
-        coords[:, 1] = dec
-        
-        return coords*u.rad #ra,dec
+        ra = phi
+        coords_out = np.column_stack((ra, dec))
+        return coords_out * u.rad
     

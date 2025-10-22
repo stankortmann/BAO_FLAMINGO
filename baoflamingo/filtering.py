@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 
 class filtering_tools:
     def __init__(self,soap_file,cosmology,
+    complete_sphere,max_angle_incomplete,
     central_filter=False,
     stellar_mass_filter=False,stellar_mass_cutoff=0,
     luminosity_filter=False, filter_band='r',m_cutoff=22.0):
@@ -15,7 +16,11 @@ class filtering_tools:
 
         #saving cosmology instance
         self.cosmo=cosmology
-        
+
+        #complete sphere
+        self.complete_sphere=complete_sphere
+        self.max_angle_incomplete=max_angle_incomplete
+
         #stellar mass filter parameters and if we have to use it
         self.stellar_mass_filter_switch=stellar_mass_filter
         self.stellar_mass_cutoff=stellar_mass_cutoff
@@ -42,6 +47,24 @@ class filtering_tools:
         r = coordinates[:, 0]
         full_mask = (r >= self.cosmo.minus_dr) & (r <= self.cosmo.plus_dr)
         #only send back theta and phi
+        
+        if self.complete_sphere ==False:
+
+            #phi boundaries
+            phi=coordinates[:,2]
+            max_phi = self.max_angle_incomplete.value
+            phi_boundaries = (phi >= -max_phi) & (phi <= max_phi) 
+            full_mask &=phi_boundaries
+
+            #theta boundaries
+            theta=coordinates[:,1]
+            max_cos_theta = np.sin(max_phi)
+            min_theta = np.arccos(max_cos_theta)
+            max_theta = np.arccos(-max_cos_theta)
+            theta_boundaries = (theta >= min_theta) & (theta <=max_theta)
+            full_mask &= theta_boundaries
+        
+        
         return full_mask
 
     def _central_filter(self,mask):
@@ -109,7 +132,7 @@ class filtering_tools:
         print('average:',np.average(m))
         print('median:',np.median(m))
 
-        m_mask=(m<=self.m_cutoff)
+        m_mask = (m<=self.m_cutoff)
 
 
         # Map back to full catalog length

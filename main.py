@@ -4,6 +4,7 @@ import yaml
 # Our own modules
 import baoflamingo.data_structure as ds  # dataclasses in separate file
 from baoflamingo.pipeline_single import run_pipeline_single
+from baoflamingo.plotting import plot_correlation_single_slice
 
 
 ############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############
@@ -25,6 +26,7 @@ if __name__ == "__main__":
     )
     if cfg.slicing.method=='single':
         run_pipeline_single(cfg)
+        plot_correlation_single_slice(cfg,show_fit=False, save_plot=True)
     
     #Will be implemented later on!
     """ 

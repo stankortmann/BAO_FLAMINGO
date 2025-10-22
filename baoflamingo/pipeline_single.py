@@ -98,6 +98,7 @@ def run_pipeline_single(cfg):
     else:
         complete_sphere = False
         shift = np.random.uniform(-0.5*box_size_float, 0.5*box_size_float, size=3)
+        #we have to do extra slicing with this one!
         max_angle_plus_dr = np.arcsin(box_size_float / (2 * cosmo.plus_dr))*u.rad
         observer = centre.copy()
         observer[0] += cosmo.comoving_distance.value
@@ -107,6 +108,8 @@ def run_pipeline_single(cfg):
     filters = flt.filtering_tools(
         soap_file=data,
         cosmology=cosmo,
+        complete_sphere=complete_sphere,
+        max_angle_incomplete=max_angle_plus_dr,
         central_filter=cfg.filters.central_filter,
         stellar_mass_filter=cfg.filters.stellar_mass_filter,
         stellar_mass_cutoff=cfg.filters.stellar_mass_cutoff,

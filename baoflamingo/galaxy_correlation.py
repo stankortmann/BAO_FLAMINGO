@@ -355,18 +355,28 @@ class correlation_tools_treecorr_test:
     def _generate_random(self):
         """Generate random points in spherical coordinates."""
         if self.complete_sphere:
-            max_cos_theta = 1.0
             max_phi = np.pi
+            max_cos_theta= 1.0
+            
         else:
-            max_cos_theta = np.cos(self.max_angle_incomplete)
-            max_phi = self.max_angle_incomplete
-        
-        random_theta = np.arccos(self.rng.uniform(low=-max_cos_theta, 
+            max_phi = self.max_angle_incomplete.value
+            max_cos_theta = +np.sin(max_phi)
+            
+        ##we have to look at this!
+        random_theta =np.arccos(self.rng.uniform(low=-max_cos_theta, 
                                                   high=max_cos_theta,
                                                   size=self.n_random))
-        random_phi = self.rng.uniform(low=-max_phi, high=max_phi, size=self.n_random)
+        
+        random_phi = self.rng.uniform(low=-max_phi,
+                                      high=max_phi,
+                                      size=self.n_random)
+
+        print("Theta min/max:", random_theta.min(), random_theta.max())
+        print("Phi min/max:", random_phi.min(), random_phi.max())
+        
         random = np.column_stack((random_theta, random_phi))
-        return random*u.rad
+        
+        return random
 
     #-----------------------
     # Build TreeCorr Catalogs
@@ -375,44 +385,19 @@ class correlation_tools_treecorr_test:
     
     def _catalog(self, coords_sph):
 
-        """
-        #Secure type as float
-        coords_sph = np.asarray(coords_sph, dtype=float)
-        #overwriting=memory efficiency 
-        coords_sph=coordinate_tools.theta_phi_to_ra_dec(coords_sph) #ra,dec in degrees
-        #Secure type as float, double check
-        coords_sph = np.asarray(coords_sph, dtype=float)
-
-
-        if self.patch_centers is None: #for the random catalogue patch_centers is empty
-            return treecorr.Catalog(ra=coords_sph[:,0],
-                                    dec=coords_sph[:,1],
-                                    npatch=self.npatches,
-                                    
-                                    ra_units='degrees',
-                                    dec_units='degrees'
-                                    )
-        else: #for the data catalogue
-            return treecorr.Catalog(ra=coords_sph[:,0],
-                                    dec=coords_sph[:,1],
-                                    patch_centers=self.patch_centers,
-                                    
-                                    ra_units='degrees',
-                                    dec_units='degrees'
-                                    )
-        """
-        coords_sph = np.asarray(coords_sph, dtype=float)
+        
         #overwriting=memory efficiency, ra,dec in radians 
         coords=coordinate_tools.theta_phi_to_ra_dec(coords_sph) 
-        #Secure type as float, double check, only retrieve value
-        coords = np.asarray(coords.value, dtype=float)
+        
 
-        """
-        print(np.max(coords_sph[:,0]),np.max(coords_sph[:,1]))
-        print(np.min(coords_sph[:,0]),np.min(coords_sph[:,1]))
-        print(np.average(coords_sph[:,0]),np.average(coords_sph[:,1]))
-        """
-        #for the random catalogue patch_centers is empty
+        print("At _catalog() entry, shape:", coords_sph.shape)
+        
+        print("Theta col min/max:", coords_sph[:,0].min(), coords_sph[:,0].max())
+        print("Phi col min/max:", coords_sph[:,1].min(), coords_sph[:,1].max())
+
+        
+        
+        #for the random catalogue patch_centers is empty, initialize with the npatches
         if self.patch_centers is None: 
             return treecorr.Catalog(ra=coords[:,0],
                                     dec=coords[:,1],
@@ -421,7 +406,7 @@ class correlation_tools_treecorr_test:
                                     npatch=self.npatches,
                                     
                                     )
-        else: #for the data catalogue
+        else: #for the data catalogue, use patch centers
             return treecorr.Catalog(ra=coords[:,0],
                                     dec=coords[:,1],
                                     ra_units='radians',
