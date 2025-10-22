@@ -18,7 +18,7 @@ import baoflamingo.cosmology as cs
 
 
 
-def monitor_memory(interval=30):
+def monitor_memory(interval=120):
     """Print memory usage every `interval` seconds."""
     process = psutil.Process(os.getpid())
     while True:

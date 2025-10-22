@@ -51,7 +51,7 @@ def plot_correlation_single_slice(cfg,filename,show_fit=False, save_plot=True):
     
     # --- Plotting ---
     plt.figure(figsize=(8, 6))
-    plt.scatter(bin_centers, ls_avg, label="Landy–Szalay")
+    
     
     # Smooth baseline
     spline = UnivariateSpline(bin_centers.value, ls_avg, s=20)
@@ -70,7 +70,7 @@ def plot_correlation_single_slice(cfg,filename,show_fit=False, save_plot=True):
     print(f"Expected BAO angle: {bao}")
     
     # Optional error bars
-    # plt.errorbar(bin_centers, ls_avg, yerr=ls_std, fmt="x", alpha=0.7)
+    plt.errorbar(bin_centers, ls_avg, yerr=ls_std, fmt="x", alpha=0.7,label="Landy–Szalay")
     
     # Optional smooth fit
     if show_fit:

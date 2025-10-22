@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List, Union
 
 @dataclass
 class Paths:
@@ -6,7 +7,7 @@ class Paths:
     soap_hbt_subpath: str
     simulation: str
     redshift_file: str
-    snapshot_number:int
+    snapshot_number: Union[int, List[int]]  # can be a single int or list
     output_directory:str
 
 @dataclass

@@ -270,22 +270,23 @@ class correlation_tools_treecorr_test:
         self.radius=cosmology.comoving_distance
         self.max_angle_incomplete=max_angle
 
-        
+        #angles
         self.min_chord=min_distance/self.radius
         self.max_chord=max_distance/self.radius
         self.bao_chord=cosmology.bao_distance/self.radius
-        self.bao_rad=coordinate_tools.chord_to_angular_radians(self.bao_chord)*u.rad
+        self.min_rad=coordinate_tools.chord_to_angular_radians(self.min_chord)
+        self.max_rad=coordinate_tools.chord_to_angular_radians(self.max_chord)
+        self.bao_rad=coordinate_tools.chord_to_angular_radians(self.bao_chord)
         
         
         
         
         # define bin edges and nn objects for the treecorrelation
-        self.min_rad=coordinate_tools.chord_to_angular_radians(self.min_chord)*u.rad
-        self.max_rad=coordinate_tools.chord_to_angular_radians(self.max_chord)*u.rad
         self.bin_type='Linear' 
             
         
         #for euclidean already include all the distances with unyt
+        #overwritten for angular
         self.bao=cosmology.bao_distance
         self.min=min_distance*u.Mpc
         self.max=max_distance*u.Mpc
@@ -481,10 +482,11 @@ class correlation_tools_treecorr_test:
         radians_centers=dd.rnom #in radians
         if self.distance_type == 'angular':
             #might want to get meanlogr or meanr from the treecorr module!
+            #overwriting the euclidean distances with angular distances in rad
             self.bin_centers=radians_centers*u.rad
-            self.bao=self.bao_angle
-            self.min=self.min_sep
-            self.max=self.max_sep
+            self.bao=self.bao_rad
+            self.min=self.min_rad
+            self.max=self.max_rad
         
         if self.distance_type == 'euclidean':
             chord_centers=coordinate_tools.angular_radians_to_chord(radians_centers)
@@ -496,11 +498,3 @@ class correlation_tools_treecorr_test:
         return mean,std
 
     
-
-
-
-
-
-
-
-
