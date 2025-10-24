@@ -99,7 +99,7 @@ r_bao = bin_centers_plot[peak_idx]
 xi_bao = xi_residual[peak_idx]
 plt.plot(bin_centers_plot, baseline, color='r', linestyle='--', label='Smooth baseline')
 
-print(f"BAO peak at r ~ {r_bao:.2f} Mpc with ξ ~ {xi_bao:.4f}")
+print(f"BAO peak at r ~ {r_bao:.6f} Mpc with ξ ~ {xi_bao:.6f}")
 print('The expected BAO peak is at',bao_angle)
 
 # Optional error bars (uncomment if you have std)

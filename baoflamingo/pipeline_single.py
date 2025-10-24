@@ -17,7 +17,7 @@ from baoflamingo.coordinates import coordinate_tools
 
 # --- Memory and monitor ---
 
-def monitor_system(interval=30):
+def monitor_system(interval=120):
     """
     Print CPU and memory usage every `interval` seconds.
     - CPU usage: percentage of total CPU
@@ -46,7 +46,6 @@ def run_pipeline_single(cfg):
     # --- Paths ---
     directory = cfg.paths.directory
     simulation = cfg.paths.simulation
-    safe_simulation = simulation.replace("/", "_")
     soap_hbt_path = os.path.join(directory, simulation, cfg.paths.soap_hbt_subpath)
     redshift_path = os.path.join(directory, simulation, cfg.paths.redshift_file)
     
@@ -103,8 +102,20 @@ def run_pipeline_single(cfg):
         observer = centre.copy()
         observer[0] += cosmo.comoving_distance.value
         print("No complete spherical slice is possible")
+
+
+
+    # --- Coordinate transformation set up ---
+    coordinates = coordinate_tools(
+        box_size=box_size_float,
+        complete_sphere=complete_sphere,
+        observer=observer,
+        shift=shift
+    )
+
+
     
-    # --- Filtering ---
+    # --- Filtering set up---
     filters = flt.filtering_tools(
         soap_file=data,
         cosmology=cosmo,
@@ -119,29 +130,34 @@ def run_pipeline_single(cfg):
     )
     gc.collect()
     print("Filters set up")
-    
-    # --- Coordinate transformation ---
-    d_coords = data.input_halos.halo_centre.value
-    coordinates = coordinate_tools(
-        coordinates=d_coords,
-        box_size=box_size_float,
-        complete_sphere=complete_sphere,
-        observer=observer,
-        shift=shift
-    )
-    d_coords_sph = coordinates.spherical
 
-    #memory efficiency to delete original d_coords from memory
+
+    # --- Load in galaxy centers ---
+    d_coords = data.input_halos.halo_centre.value
+
+    # --- Stellar mass filter and nonzero luminosity ---
+    # Apply and keep the filtered coordinates
+    d_coords = filters.stellar_mass_filter(d_coords)
+    d_coords = filters.zero_luminosity_filter(d_coords)
+
+    # --- Convert to spherical coordinates ---
+    d_coords_sph = coordinates.cartesian_to_spherical(d_coords)
+
+    # Free memory
     del d_coords
     gc.collect()
+
+    # --- Radial filter ---
+    # This one will update total_mask and return (theta, phi)
+    d_coords_sph = filters.radial_filter(d_coords_sph)
+
+    # --- Luminosity filter ---
+    # Applies apparent magnitude cut
+    d_coords_sph = filters.luminosity_filter(d_coords_sph)
+
     
-    # --- Apply radial & luminosity mask ---
-    #radial_luminosity_mask = filters.radial_luminosity(d_coords_sph)
-    radial_luminosity_mask=filters.radial_luminosity(d_coords_sph)
-    gc.collect()
-    #overwrite to save memory, change this
-    d_coords_sph = d_coords_sph[radial_luminosity_mask][:, 1:]
-    
+
+
     data_size = np.shape(d_coords_sph)[0]
     if data_size < 2:
         print("Empty slice after redshift filtering.")
@@ -174,10 +190,21 @@ def run_pipeline_single(cfg):
     
     
     # --- Save output using HDF5 ---
+
+    # Construct nested output directory structure
+    output_dir = os.path.join(cfg.paths.output_directory, simulation)
+
+    # Make sure it exists (this creates all intermediate subdirectories)
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Build the full file path
     output_filename = os.path.join(
-        cfg.paths.output_directory,
-        f"single_slice_{safe_simulation}_snapshot_{redshift_number}.hdf5"
+        output_dir,
+        f"single_slice_snapshot_{redshift_number}.hdf5"
     )
+
+    print("Saving results to:", output_filename)
+
 
     with h5py.File(output_filename, "w") as f:
 

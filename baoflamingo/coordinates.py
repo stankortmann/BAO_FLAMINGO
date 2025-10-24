@@ -65,16 +65,24 @@ def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0):
 
 class coordinate_tools:
 
-    def __init__(self,coordinates,box_size=1000,
+    def __init__(self,box_size=1000,
         complete_sphere=True,observer=None,shift=None):
         
-        
+        self.box_size=box_size
+        self.complete_sphere=complete_sphere
+        self.observer=observer
+        self.shift=shift
 
-        # Compute spherical coordinates immediately and store
-        self.spherical = cartesian_to_spherical_numba(
-            coordinates, shift, observer,
-            box_size=box_size
-        )
+    def cartesian_to_spherical(self,coordinates):
+        #this setup to call this inside the class, 
+        #numba functions cannot be inside!
+        sph_coords=cartesian_to_spherical_numba(
+            coords=coordinates,
+            shift=self.shift,
+            observer=self.observer,
+            box_size=self.box_size)
+
+        return sph_coords
 
 
     @staticmethod

@@ -66,8 +66,8 @@ def plot_correlation_single_slice(cfg,filename,show_fit=False, save_plot=True):
     plt.plot(bin_centers, baseline, color='r', linestyle='--', label='Smooth baseline')
     plt.axvline(bao, color="g", linestyle="--", label=f"BAO angle = {bao:.2f}")
     
-    print(f"BAO peak at r ~ {r_bao:.2f} with ξ ~ {xi_bao:.4f}")
-    print(f"Expected BAO angle: {bao}")
+    print(f"BAO peak at r ~ {r_bao:.6f} with ξ ~ {xi_bao:.6f}")
+    print(f"Expected BAO angle: {bao:.6f}")
     
     # Optional error bars
     plt.errorbar(bin_centers, ls_avg, yerr=ls_std, fmt="x", alpha=0.7,label="Landy–Szalay")

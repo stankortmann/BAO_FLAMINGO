@@ -43,7 +43,7 @@ if __name__ == "__main__":
             data_plot = plot_correlation_single_slice(
                 cfg=cfg,
                 filename=data_filename,
-                show_fit=False,   # polynomial fit, not spline
+                show_fit=False,   # polynomial fit, spline is always done
                 save_plot=True
             )
 

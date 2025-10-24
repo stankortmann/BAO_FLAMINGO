@@ -29,12 +29,19 @@ class filtering_tools:
         self.filter_band=filter_band
         self.m_cutoff=m_cutoff
         
-
-        #empty mask if filters are not applied
+        
+        #empty mask if filters are not applied, complete pass
         self.empty_mask=np.ones(
             len(soap_file.bound_subhalo.stellar_mass),dtype=bool)
         
-        
+
+
+        #We always update these filters so you can apply them when calling a filter
+        #this one will keep track of what galaxies have already been masked
+        self.total_mask=self.empty_mask
+
+        #this one will actually be applied onto the coordinates of the haloes
+        self.apply_mask=self.empty_mask 
 
         
 
@@ -43,58 +50,93 @@ class filtering_tools:
 
     
     def radial_filter(self,coordinates):
-       
+        old_mask=self.total_mask.copy() #we do not apply this to coordinates,
+        #is already done in the pipeline!
+        
         r = coordinates[:, 0]
-        full_mask = (r >= self.cosmo.minus_dr) & (r <= self.cosmo.plus_dr)
-        #only send back theta and phi
+        radial_mask = (r >= self.cosmo.minus_dr) & (r <= self.cosmo.plus_dr)
+        complete_mask=radial_mask
+
         
         if self.complete_sphere ==False:
-
+            #extra boundaries have to be set!!
             #phi boundaries
             phi=coordinates[:,2]
             max_phi = self.max_angle_incomplete.value
-            phi_boundaries = (phi >= -max_phi) & (phi <= max_phi) 
-            full_mask &=phi_boundaries
+            phi_mask = (phi >= -max_phi) & (phi <= max_phi) 
+            complete_mask &=phi_mask
 
             #theta boundaries
             theta=coordinates[:,1]
             max_cos_theta = np.sin(max_phi)
             min_theta = np.arccos(max_cos_theta)
             max_theta = np.arccos(-max_cos_theta)
-            theta_boundaries = (theta >= min_theta) & (theta <=max_theta)
-            full_mask &= theta_boundaries
+            theta_mask = (theta >= min_theta) & (theta <=max_theta)
+            complete_mask &= theta_mask
+        #updating internal total_mask
+        old_mask[old_mask]=complete_mask
+        self.total_mask=old_mask
         
-        
-        return full_mask
+        sph_coordinates=coordinates[complete_mask][:,1:] #only keep theta and phi
+        print("Radial filter applied")
+        return sph_coordinates
 
-    def _central_filter(self,mask):
+    def central_filter(self,coordinates):
+        old_mask=self.total_mask.copy()
+
+        central_mask=self.file.input_halos.is_central.value[old_mask]
+        #updating internal total_mask
+        old_mask[old_mask]=central_mask
+        self.total_mask=old_mask
         
-        central_mask=self.file.input_halos.is_central.value
-        full_mask= (central_mask==0)
-        return full_mask
+        coordinates=coordinates[central_mask]
+        print("Central filter applied")
+        return coordinates
 
     
-    def _stellar_mass_filter(self,mask):
-        stellar_mass=self.file.bound_subhalo.stellar_mass[mask]
-        full_mask= (stellar_mass>=stellar_mass_cutoff)
-        return full_mask
+    def stellar_mass_filter(self,coordinates):
+        old_mask=self.total_mask.copy()
+
+        stellar_mass=self.file.bound_subhalo.stellar_mass[old_mask]
+        stellar_mass_mask= (stellar_mass>self.stellar_mass_cutoff)
+        #updating internal total_mask
+        old_mask[old_mask]=stellar_mass_mask
+        self.total_mask=old_mask
+        
+        coordinates=coordinates[stellar_mass_mask]
+        print("Stellar mass filter applied")
+        return coordinates
 
 
-    def _luminosity_filter(self,mask):
+    def zero_luminosity_filter(self,coordinates):
+        old_mask=self.total_mask.copy()
+        
+        lum = self.file.bound_subhalo.stellar_luminosity.value[old_mask]
+        mask_zero = np.any(lum == 0, axis=1)
+
+        old_mask[old_mask] = ~mask_zero
+        self.total_mask=old_mask
+        
+        coordinates=coordinates[~mask_zero]
+        return coordinates
+
+
+    def luminosity_filter(self,coordinates):
+        old_mask=self.total_mask.copy()
+        
         #Effective wavelengths of bands in nm
        
         bands=['u','g','r','i','z','Y','J','H','K']
-        lambda_eff=[354,475,622,763,905,1031,1248,1631,2201] #in nm
+        lambda_eff=np.array([354,475,622,763,905,1031,1248,1631,2201]) #in nm
         log_lambda_eff=np.log10(lambda_eff)
-
-        lum = self.file.bound_subhalo.stellar_luminosity.value  # shape (N_gal, N_bands)
-        lum=lum[mask,:] #for radial filtering FIRST!!
+        
+        # shape (N_gal, N_bands)
+        lum = self.file.bound_subhalo.stellar_luminosity.value[old_mask]
+        
+        
         
         # Filter out galaxies with any zero luminosity (or just in the u-band)
-        nonzero_mask = lum[:, bands.index('u')] != 0
-        lum = lum[nonzero_mask, :]
-        pass_fraction = np.count_nonzero(nonzero_mask) / nonzero_mask.size * 100
-        print(f"Pass percentage after stellar mass filter: {pass_fraction:.2f}%")
+        #now already done with the stellar mass filter
 
         #loading in luminosities in all bands
         #we have to convert to absolute magnitudes in each band
@@ -135,43 +177,15 @@ class filtering_tools:
         m_mask = (m<=self.m_cutoff)
 
 
-        # Map back to full catalog length
-        #combine with zero luminosity mask to send back total mask
-        full_mask = np.zeros(len(nonzero_mask), dtype=bool)
-        full_mask[nonzero_mask] = m_mask
+       
+        pass_fraction = np.count_nonzero(m_mask) / len(m_mask) * 100
+        print(f"Pass percentage after luminosity filter of\
+galaxies with stellar mass: {pass_fraction:.2f}%")
+        #updating internal total_mask
+        old_mask[old_mask]=m_mask
+        self.total_mask=old_mask
         
-        pass_fraction = np.count_nonzero(full_mask) / full_mask.size * 100
-        print(f"Pass percentage after luminosity filter: {pass_fraction:.2f}%")
+        coordinates=coordinates[m_mask]
+        print("Luminosity filter applied")
+        return coordinates
 
-
-
-        #memory clean up of large arrays
-        del lum,M_ab_bands, m, M_ab_rest
-        
-        return full_mask 
-
-
-    #The next two functions are actually used by the main.py files
-    def radial_luminosity(self,coordinates):
-
-        radial_mask=self.radial_filter(coordinates)
-
-        luminosity_mask=self._luminosity_filter(mask=radial_mask)
-
-        full_mask = np.zeros(len(radial_mask), dtype=bool)
-        full_mask[radial_mask] = luminosity_mask
-
-        return full_mask
-    
-    def luminosity_filter(self):
-        return self._luminosity_filter(self.empty_mask)
-
-    def radial_central(self,coordinates):
-
-        radial_mask=self.radial_filter(coordinates)
-
-        central_mask=self._central_filter(mask=radial_mask)
-
-        full_mask = central_mask & radial_mask
-
-        return full_mask
