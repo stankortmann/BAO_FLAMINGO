@@ -2,20 +2,20 @@ paths:
   directory: /cosma8/data/dp004/flamingo/Runs/ #do not touch!
   soap_hbt_subpath: SOAP-HBT/halo_properties_00 #do not touch!
 
-  simulation: L1000N0900/HYDRO_FIDUCIAL #only thouch this part!
+  simulation: L2800N5040/HYDRO_FIDUCIAL #only thouch this part!
   redshift_file: output_list.txt
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [60,61,62,63,64,65,66,67,68,69] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  snapshot_number: [60,61,62,63,64,65,66] #for numbers below 10: fill in 06 or 07, not 6 and 7
   output_directory: results_angular_2 #full path if necessary
 
 slicing:
   method: single #single or multiple
   n_slices: 20  #if you choose for multiple, this measures cosmic variance
-  redshift_bin_width: 0.1 #delta_z of the complete bin, will mark the shell volume
+  bin_width: 0.2 #delta_z of the complete bin, will mark the shell volume
   
 
 distance: # in Mpc
-  min: 30
+  min: 50
   max: 250
   type: angular # angular or euclidean
 
@@ -29,13 +29,13 @@ filters:
   stellar_mass_cutoff: 0
   luminosity_filter: on
   band: r  #observed band
-  m_cutoff: 20 #apparent band magnitude for the observer
+  m_cutoff: 24 #apparent band magnitude for the observer
   
 
 plotting:
-  bins: 44
+  bins: 40
   leafsize: 100  #might be deleted later on, only useful in old_correlation.py
 
 statistics:
   variance_method: jackknife #bootstrap,jackknife,simple(n_patches=1)
-  n_patches: 100
+  n_patches: 40

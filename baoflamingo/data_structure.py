@@ -14,7 +14,7 @@ class Paths:
 class Slicing:
     method:str
     n_slices:int
-    n_sigma: float
+    redshift_bin_width: float
     
 
 @dataclass
@@ -39,13 +39,13 @@ class Filters:
     
 @dataclass
 class Plotting:
-    bins: int
+    bins: Union[int, List[int]] 
     leafsize: int
 
 @dataclass
 class Statistics:
     variance_method: str
-    n_patches: int
+    n_patches: Union[int, List[int]] 
 
 @dataclass
 class Config:

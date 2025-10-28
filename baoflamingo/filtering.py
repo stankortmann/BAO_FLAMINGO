@@ -6,7 +6,6 @@ from scipy.interpolate import interp1d
 
 class filtering_tools:
     def __init__(self,soap_file,cosmology,
-    complete_sphere,max_angle_incomplete,
     central_filter=False,
     stellar_mass_filter=False,stellar_mass_cutoff=0,
     luminosity_filter=False, filter_band='r',m_cutoff=22.0):
@@ -16,10 +15,6 @@ class filtering_tools:
 
         #saving cosmology instance
         self.cosmo=cosmology
-
-        #complete sphere
-        self.complete_sphere=complete_sphere
-        self.max_angle_incomplete=max_angle_incomplete
 
         #stellar mass filter parameters and if we have to use it
         self.stellar_mass_filter_switch=stellar_mass_filter
@@ -54,15 +49,15 @@ class filtering_tools:
         #is already done in the pipeline!
         
         r = coordinates[:, 0]
-        radial_mask = (r >= self.cosmo.minus_dr) & (r <= self.cosmo.plus_dr)
+        radial_mask = (r >= self.cosmo.inner_edge_bin) & (r <= self.cosmo.outer_edge_bin)
         complete_mask=radial_mask
 
         
-        if self.complete_sphere ==False:
+        if self.cosmo.complete_sphere ==False:
             #extra boundaries have to be set!!
             #phi boundaries
             phi=coordinates[:,2]
-            max_phi = self.max_angle_incomplete.value
+            max_phi = self.cosmo.max_angle.value
             phi_mask = (phi >= -max_phi) & (phi <= max_phi) 
             complete_mask &=phi_mask
 
@@ -73,13 +68,24 @@ class filtering_tools:
             max_theta = np.arccos(-max_cos_theta)
             theta_mask = (theta >= min_theta) & (theta <=max_theta)
             complete_mask &= theta_mask
+        
+        sph_coordinates=coordinates[complete_mask] #(r,theta,phi)
+        rad_coordinates=sph_coordinates[:,0] #(r)
+        # r ---> z
+        redshift_coordinates=self.cosmo.comoving_distance_to_redshift(rad_coordinates)
+        # now introduce an error in the z_coordinate and overwrite
+        redshift_coordinates=self.cosmo.redshift_with_error(redshift_coordinates)
+        #now unpack the theta and phi within 
+        theta_phi_coordinates=sph_coordinates[:,1:]
+
         #updating internal total_mask
         old_mask[old_mask]=complete_mask
         self.total_mask=old_mask
         
-        sph_coordinates=coordinates[complete_mask][:,1:] #only keep theta and phi
+        #final stacking
+        complete_coordinates=np.column_stack((redshift_coordinates,theta_phi_coordinates))
         print("Radial filter applied")
-        return sph_coordinates
+        return complete_coordinates #(z,theta,phi)
 
     def central_filter(self,coordinates):
         old_mask=self.total_mask.copy()
@@ -113,7 +119,7 @@ class filtering_tools:
         
         lum = self.file.bound_subhalo.stellar_luminosity.value[old_mask]
         mask_zero = np.any(lum == 0, axis=1)
-
+        #updating internal total_mask
         old_mask[old_mask] = ~mask_zero
         self.total_mask=old_mask
         
@@ -165,7 +171,8 @@ class filtering_tools:
 
 
         #calculate apparent magnitude in the selected band
-        D_L = self.cosmo.luminosity_distance *1e6 # convert Mpc → pc
+        #use the z component of the coordinates to calculate the luminosity distance
+        D_L = self.cosmo.luminosity_distance(coordinates[:,0]).to('pc')# convert Mpc → pc)
         m = M_ab_rest + 5 * np.log10(D_L)  -5
 
         print('statistics of apparent magnitude:')
@@ -179,8 +186,9 @@ class filtering_tools:
 
        
         pass_fraction = np.count_nonzero(m_mask) / len(m_mask) * 100
-        print(f"Pass percentage after luminosity filter of\
+        print(f"Pass percentage after luminosity filter of \
 galaxies with stellar mass: {pass_fraction:.2f}%")
+        
         #updating internal total_mask
         old_mask[old_mask]=m_mask
         self.total_mask=old_mask

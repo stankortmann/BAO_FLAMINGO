@@ -65,11 +65,10 @@ def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0):
 
 class coordinate_tools:
 
-    def __init__(self,box_size=1000,
-        complete_sphere=True,observer=None,shift=None):
+    def __init__(self,cosmology,observer=None,shift=None):
         
-        self.box_size=box_size
-        self.complete_sphere=complete_sphere
+        self.box_size=cosmology.box_size.value
+        self.complete_sphere=cosmology.complete_sphere
         self.observer=observer
         self.shift=shift
 

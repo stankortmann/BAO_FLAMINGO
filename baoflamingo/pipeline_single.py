@@ -62,11 +62,12 @@ def run_pipeline_single(cfg):
     redshift = redshift_list[redshift_number]
     print("Snapshot redshift:", redshift)
     cosmology = metadata.cosmology
-    box_size_float = float(metadata.boxsize.value[0])
-    centre = np.array([box_size_float / 2] * 3)
+    box_size = metadata.boxsize[0]
+    print(box_size)
+    centre = np.array([box_size.value / 2] * 3)
     
     cosmo = cs.cosmo_tools(
-        box_size=box_size_float,
+        box_size=box_size,
         H0=cosmology.H0.value,
         Omega_m=cosmology.Om0,
         Omega_b=cosmology.Ob0,
@@ -74,20 +75,20 @@ def run_pipeline_single(cfg):
         Tcmb=cosmology.Tcmb0.value,
         Neff=cosmology.Neff,
         redshift=redshift,
-        n_sigma=cfg.slicing.n_sigma
+        redshift_bin_width=cfg.slicing.redshift_bin_width #delta_z
     )
     print("Cosmology set up")
-    print("Radius is",cosmo.comoving_distance)
+    print("Centre radius is",cosmo.center_bin)
     del metadata
     gc.collect()
     
     print("Thickness of slice is:", cosmo.delta_dr)
     
     # --- Observer position ---
-    if cosmo.plus_dr < 0.5 * box_size_float:
-        complete_sphere = True
-        shift = np.random.uniform(-0.5*box_size_float, 0.5*box_size_float, size=3)
-        max_angle_plus_dr = 0
+    if cosmo.complete_sphere:
+        
+        shift = np.random.uniform(-0.5*box_size.value, 0.5*box_size.value, size=3)
+        
         observer = centre.copy()
         
         print("Complete spherical slice is possible")
@@ -95,20 +96,19 @@ def run_pipeline_single(cfg):
     #We have to take a look at this!
     
     else:
-        complete_sphere = False
-        shift = np.random.uniform(-0.5*box_size_float, 0.5*box_size_float, size=3)
+        
+        shift = np.random.uniform(-0.5*box_size.value, 0.5*box_size.value, size=3)
         #we have to do extra slicing with this one!
-        max_angle_plus_dr = np.arcsin(box_size_float / (2 * cosmo.plus_dr))*u.rad
         observer = centre.copy()
-        observer[0] += cosmo.comoving_distance.value
+        #shift of the x value!
+        observer[0] += cosmo.center_bin.value
         print("No complete spherical slice is possible")
 
 
 
     # --- Coordinate transformation set up ---
     coordinates = coordinate_tools(
-        box_size=box_size_float,
-        complete_sphere=complete_sphere,
+        cosmology=cosmo,
         observer=observer,
         shift=shift
     )
@@ -119,8 +119,6 @@ def run_pipeline_single(cfg):
     filters = flt.filtering_tools(
         soap_file=data,
         cosmology=cosmo,
-        complete_sphere=complete_sphere,
-        max_angle_incomplete=max_angle_plus_dr,
         central_filter=cfg.filters.central_filter,
         stellar_mass_filter=cfg.filters.stellar_mass_filter,
         stellar_mass_cutoff=cfg.filters.stellar_mass_cutoff,
@@ -140,15 +138,15 @@ def run_pipeline_single(cfg):
     d_coords = filters.stellar_mass_filter(d_coords)
     d_coords = filters.zero_luminosity_filter(d_coords)
 
-    # --- Convert to spherical coordinates ---
-    d_coords_sph = coordinates.cartesian_to_spherical(d_coords)
+    # --- Convert to spherical coordinates and introduce error in redshift---
+    d_coords_sph = coordinates.cartesian_to_spherical(d_coords) #(z,theta,phi)
 
     # Free memory
     del d_coords
     gc.collect()
 
     # --- Radial filter ---
-    # This one will update total_mask and return (theta, phi)
+    # This one will update total_mask and return (r,theta, phi)
     d_coords_sph = filters.radial_filter(d_coords_sph)
 
     # --- Luminosity filter ---
@@ -167,15 +165,15 @@ def run_pipeline_single(cfg):
     
     # --- Correlation ---
     n_random = int(cfg.random_catalog.oversampling * data_size)
-    correlation = gal_cor.correlation_tools_treecorr_test(
+    correlation = gal_cor.correlation_tools_treecorr(
+            coordinates=d_coords_sph,
             cosmology=cosmo,
             #include unyt units
             min_distance=cfg.distance.min*u.Mpc,
             max_distance=cfg.distance.max*u.Mpc,
 
             n_random=n_random,
-            max_angle=max_angle_plus_dr,
-            complete_sphere=complete_sphere,
+            
             bins=cfg.plotting.bins, 
             distance_type=cfg.distance.type, 
             seed=cfg.random_catalog.seed,
@@ -184,8 +182,8 @@ def run_pipeline_single(cfg):
     
     )
     
-    ls_avg,ls_std = correlation.landy_szalay(coords=d_coords_sph)
-    survey_density = correlation.galaxy_density(data_size)
+    ls_avg,ls_std = correlation.ls_avg, correlation.ls_std
+    survey_density = correlation.galaxy_density
     print("Survey density :", survey_density)
     
     

@@ -3,12 +3,23 @@ import scipy.spatial as ss
 from scipy.integrate import quad
 from astropy.constants import c
 from scipy.optimize import curve_fit
+from scipy.interpolate import PchipInterpolator
 import unyt as u
 
 
 
 class cosmo_tools:
-    def __init__(self,box_size, H0, Omega_m, Omega_lambda, Tcmb, Neff, Omega_b, redshift,n_sigma):
+    def __init__(self,
+    box_size,
+    H0,
+    Omega_m, 
+    Omega_lambda, 
+    Tcmb, Neff,
+    Omega_b, 
+    redshift,
+    redshift_bin_width):
+
+
         self.box_size=box_size
         #Hubble constant
         self.H0 = H0
@@ -41,16 +52,22 @@ class cosmo_tools:
         #save all the importan parameters here
         self.redshift=redshift
         
-        self.redshift_error=self._redshift_error(n_sigma)
-        self.dz=2*self.redshift_error #for later analysis needed
         self.bao_distance=self._bao_sound_horizon()
-        self.comoving_distance=self._comoving_distance(self.redshift)
-        self.plus_dr=self._comoving_distance(self.redshift+self.redshift_error)
-        self.minus_dr=self._comoving_distance(self.redshift-self.redshift_error)
-        self.delta_dr=self.plus_dr-self.minus_dr
+    
         
-        self.luminosity_distance=self._luminosity_distance()
-        self.angular_diameter_distance=self._angular_diameter_distance()
+        
+
+        #set outer and inner edges of the redshift bin
+        self.bin_width=redshift_bin_width
+        self._edges_bin()
+
+        #---function to transform D_c to z ---
+        #call cosmology.cosmo_tools.comoving_distance_to_redshift(redshift)
+        self.comoving_distance_to_redshift=self._comoving_distance_to_redshift()
+
+        #complete sphere and the maximum angle, handy to store here:
+        self._observer_position()
+
 
         
 
@@ -68,34 +85,64 @@ class cosmo_tools:
             self.Omega_k * (1 + z)**2
         )
 
-    def _redshift_error(self,n):
-        #we will assume a 3 sigma redshift bin
+    @staticmethod
+    def redshift_with_error(z):
+        #randomly distributes point in the z (radial) axis
         #we ignore systematic errors for now
-        sigma_z=0.0005*(1+self.redshift)
-        return n*sigma_z
+        sigma_z=0.0005*(1+z)
+        random_z=np.random.normal(z,sigma_z)
+        return random_z
 
-    def _comoving_distance(self,z):
+    
+        
+    def _edges_bin(self):
+        half_binwidth=self.bin_width/2
+        self.min_redshift=self.redshift-half_binwidth
+        self.max_redshift=self.redshift+half_binwidth
+        self.outer_edge_bin=self.comoving_distance(self.max_redshift)
+        self.inner_edge_bin=self.comoving_distance(self.min_redshift)
+        self.center_bin=self.comoving_distance(self.redshift)
+        self.delta_dr=self.outer_edge_bin-self.inner_edge_bin
+
+    def _observer_position(self):
+        if self.outer_edge_bin < 0.5 * self.box_size:
+            self.complete_sphere=True
+            self.max_angle=np.pi
+        else:
+            self.complete_sphere=False
+            self.max_angle=np.arcsin(self.box_size / (2 *self.outer_edge_bin))*u.rad
+
+    def comoving_distance(self, z):
         """
         Compute comoving line-of-sight distance D_C(z) in Mpc.
+        Works for scalar or array z.
         """
-        
-        integral, _ = quad(lambda zp: 1.0 / self.E(zp), 0.0, z, epsrel=1e-6)
-        Dc = (self.c_km_s / self.H0) * integral
-        return Dc*u.Mpc
-    def _luminosity_distance(self):
+        z=np.atleast_1d(z)
+        Dc_list = []
+
+        for zi in z:
+            integral, _ = quad(lambda zp: 1.0 / self.E(zp), 0.0, zi, epsrel=1e-6)
+            Dc_i = (self.c_km_s / self.H0) * integral
+            Dc_list.append(Dc_i)
+
+        Dc_array = np.array(Dc_list) * u.Mpc
+        return Dc_array if len(Dc_array) > 1 else Dc_array[0]
+
+
+    def luminosity_distance(self,z):
         """
         Compute luminosity distance D_L(z) in Mpc.
         """
-        Dc = self.comoving_distance
-        Dl = (1 + self.redshift) * Dc
-        return Dl*u.Mpc
-    def _angular_diameter_distance(self):
+        Dc = self.comoving_distance(z)
+        Dl = Dc * (1+z)
+        return Dl
+    def angular_diameter_distance(self,z):
         """
         Compute angular diameter distance D_A(z) in Mpc.
         """
-        Dc = self.comoving_distance
-        Da = Dc / (1 + self.redshift)
-        return Da*u.Mpc
+        Dc = self.comoving_distance(z)
+        Da = Dc / (1 + z)
+        return Da
 
     def _bao_sound_horizon(self):
         """
@@ -115,3 +162,28 @@ class cosmo_tools:
 
         r_d, _ = quad(integrand, self.z_drag, 1e7, epsrel=1e-6, limit=200)
         return r_d*u.Mpc
+
+    def _comoving_distance_to_redshift(self):
+        #builds a mapping of z <--> D_c
+        #maybe increase resolution??
+        z_grid = np.linspace(self.min_redshift, self.max_redshift, int(1e6)) 
+        Dc_grid = np.array([self.comoving_distance(z).value for z in z_grid])  # Mpc
+        # ensure monotonic
+        assert np.all(np.diff(Dc_grid) > 0)
+        inv_interp = PchipInterpolator(Dc_grid, z_grid, extrapolate=False)
+        # call inv_interp(Dc_array) -> z_array (or raises for out-of-range)
+        return inv_interp 
+
+    #calculating effective cosmological functions within a certain redshift bin
+    @staticmethod
+    def effective_redshift(z):
+        return np.mean(z)
+
+    def effective_angular_diameter_distance(self,z):
+        return self.angular_diameter_distance(self.effective_redshift(z))
+    
+    def effective_comoving_distance(self,z):
+        return self.comoving_distance(self.effective_redshift(z))
+    
+    def effective_hubble_constant(self,z):
+        return self.H0 * self.E(self.effective_redshift(z))
