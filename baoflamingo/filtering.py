@@ -5,10 +5,7 @@ from scipy.interpolate import interp1d
 
 
 class filtering_tools:
-    def __init__(self,soap_file,cosmology,
-    central_filter=False,
-    stellar_mass_filter=False,stellar_mass_cutoff=0,
-    luminosity_filter=False, filter_band='r',m_cutoff=22.0):
+    def __init__(self,soap_file,cosmology,cfg):
         
         #saving the soap file inside the instance, might be good to remain outside but not quite sure
         self.file=soap_file
@@ -17,12 +14,12 @@ class filtering_tools:
         self.cosmo=cosmology
 
         #stellar mass filter parameters and if we have to use it
-        self.stellar_mass_filter_switch=stellar_mass_filter
-        self.stellar_mass_cutoff=stellar_mass_cutoff
+        self.stellar_mass_filter_switch=cfg.filters.stellar_mass_filter
+        self.stellar_mass_cutoff=cfg.filters.stellar_mass_cutoff
         #luminosity filter 
-        self.luminosity_filter_switch=luminosity_filter
-        self.filter_band=filter_band
-        self.m_cutoff=m_cutoff
+        self.luminosity_filter_switch=cfg.filters.luminosity_filter
+        self.filter_band=cfg.filters.band
+        self.m_cutoff=cfg.filters.m_cutoff
         
         
         #empty mask if filters are not applied, complete pass
@@ -75,6 +72,8 @@ class filtering_tools:
         redshift_coordinates=self.cosmo.comoving_distance_to_redshift(rad_coordinates)
         # now introduce an error in the z_coordinate and overwrite
         redshift_coordinates=self.cosmo.redshift_with_error(redshift_coordinates)
+        #might need extra redshift filtering after this!!
+        #maybe revert back to r?
         #now unpack the theta and phi within 
         theta_phi_coordinates=sph_coordinates[:,1:]
 
@@ -84,8 +83,25 @@ class filtering_tools:
         
         #final stacking
         complete_coordinates=np.column_stack((redshift_coordinates,theta_phi_coordinates))
+
         print("Radial filter applied")
         return complete_coordinates #(z,theta,phi)
+
+    def redshift_filter(self,coordinates): #input is (z,theta,phi)
+        """
+        Extra filter to get only the galaxies in the appointed redshiftbin
+        """
+        old_mask=self.total_mask.copy()
+        z=coordinates[:,0]
+        redshift_mask= (z >= self.cosmo.min_redshift) & (z <= self.cosmo.max_redshift)
+        
+        #updating internal total_mask
+        old_mask[old_mask]=redshift_mask
+        self.total_mask=old_mask
+        
+        coordinates=coordinates[redshift_mask]
+        return coordinates
+
 
     def central_filter(self,coordinates):
         old_mask=self.total_mask.copy()

@@ -82,6 +82,26 @@ class coordinate_tools:
             box_size=self.box_size)
 
         return sph_coords
+    
+    @staticmethod
+    def spherical_to_cartesian_positions(sph_coords, cosmo):
+        """
+        Convert spherical coords (z,theta,phi) and redshift array -> Cartesian positions (N,3)
+        using cosmology object `cosmo_to_use` that provides comoving_distance(z).
+        Assumes sph_coords = array (N,2) with (theta, phi) in radians (same as your coordinate_tools).
+        """
+        
+        # cosmo must provide comoving_distance(z) returning astropy Quantity in Mpc
+        chi = cosmo.comoving_distance(sph_coords[:,0]) #shape (N)
+        
+
+        # convert (theta,phi) to unit vectors
+        unit_vec = self.theta_phi_to_unitvec(sph_coords[:,1:])# shape (N,3)
+        
+
+        # Cartesian coordinates in Mpc
+        pos = chi*unit_vec  # shape (N,3)
+        return pos
 
 
     @staticmethod
