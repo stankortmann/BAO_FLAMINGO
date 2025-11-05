@@ -4,7 +4,7 @@ import numpy as np
 # Our own modules
 import baoflamingo.data_structure_pycorr as ds
 from baoflamingo.pipeline_single_pycorr import run_pipeline_single
-from baoflamingo.plotting import plot_correlation_single_slice
+from baoflamingo.plotting_pycorr import plot_correlation_2d
 
 
 ############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############
@@ -39,10 +39,9 @@ if __name__ == "__main__":
 
         
         data_filename = run_pipeline_single(cfg)
-        data_plot = plot_correlation_single_slice(
+        data_plot = plot_correlation_2d(
             cfg=cfg,
             filename=data_filename,
-            show_fit=False,   # polynomial fit, spline is always done
             save_plot=True
         )
 

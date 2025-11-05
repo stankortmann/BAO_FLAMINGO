@@ -82,17 +82,17 @@ class filtering_tools:
         self.total_mask=old_mask
         
         #final stacking
-        complete_coordinates=np.column_stack((redshift_coordinates,theta_phi_coordinates))
+        complete_coordinates=np.column_stack((theta_phi_coordinates,redshift_coordinates))
 
         print("Radial filter applied")
-        return complete_coordinates #(z,theta,phi)
+        return complete_coordinates #(theta,phi,z)
 
-    def redshift_filter(self,coordinates): #input is (z,theta,phi)
+    def redshift_filter(self,coordinates): #input is (theta,phi,z)
         """
         Extra filter to get only the galaxies in the appointed redshiftbin
         """
         old_mask=self.total_mask.copy()
-        z=coordinates[:,0]
+        z=coordinates[:,2]
         redshift_mask= (z >= self.cosmo.min_redshift) & (z <= self.cosmo.max_redshift)
         
         #updating internal total_mask
@@ -188,7 +188,7 @@ class filtering_tools:
 
         #calculate apparent magnitude in the selected band
         #use the z component of the coordinates to calculate the luminosity distance
-        D_L = self.cosmo.luminosity_distance(coordinates[:,0]).to('pc')# convert Mpc → pc)
+        D_L = self.cosmo.luminosity_distance(coordinates[:,2]).to('pc')# convert Mpc → pc)
         m = M_ab_rest + 5 * np.log10(D_L)  -5
 
         print('statistics of apparent magnitude:')

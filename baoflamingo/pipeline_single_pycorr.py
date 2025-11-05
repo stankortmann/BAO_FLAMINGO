@@ -138,14 +138,14 @@ def run_pipeline_single(cfg):
     d_coords = filters.zero_luminosity_filter(d_coords)
 
     # --- Convert to spherical coordinates and introduce error in redshift---
-    d_coords_sph = coordinates.cartesian_to_spherical(d_coords) #(z,theta,phi)
+    d_coords_sph = coordinates.cartesian_to_spherical(d_coords) #(r,theta,phi)
 
     # Free memory
     del d_coords
     gc.collect()
 
     # --- Radial filter ---
-    # This one will update total_mask and return (z,theta, phi) with 
+    # This one will update total_mask and return (theta, phi,z) with 
     d_coords_sph = filters.radial_filter(d_coords_sph)
 
     # --- Redshift filter ---
@@ -154,7 +154,7 @@ def run_pipeline_single(cfg):
     d_coords_sph= filters.redshift_filter(d_coords_sph)
 
     # --- Luminosity filter ---
-    # Applies apparent magnitude cut
+    # Applies apparent magnitude cut, also outputs (theta, phi,z) 
     d_coords_sph = filters.luminosity_filter(d_coords_sph)
 
     
@@ -176,13 +176,15 @@ def run_pipeline_single(cfg):
     
     )
     
-    ls=correlation.ls
-    survey_density = correlation.galaxy_density
-    print(dir(ls))
-    print(np.shape(ls))
-    print("Survey density :", survey_density)
+    
+
+    print(correlation.ls_avg)
+    print("Survey density :", correlation.survey_density)
     
     
+
+
+
     # --- Save output using HDF5 ---
 
     # Construct nested output directory structure
@@ -203,35 +205,28 @@ def run_pipeline_single(cfg):
     with h5py.File(output_filename, "w") as f:
 
         # --- Unitless arrays / scalars ---
-        f.create_dataset("distance_type", data=cfg.distance.type)
-        f.create_dataset("bins", data=correlation.bins)
         f.create_dataset("oversampling_factor", data=cfg.random_catalog.oversampling)
         f.create_dataset("random_size", data=correlation.n_random)
-        f.create_dataset("ls_avg", data=ls_avg)
-        f.create_dataset("ls_std", data=ls_std)
+        f.create_dataset("ls_avg", data=correlation.ls_avg)
+        f.create_dataset("ls_std", data=correlation.ls_std)
 
         # --- Arrays / scalars with units ---
-        f.create_dataset("slice_thickness", data=cosmo.delta_dr.value)
-        f["slice_thickness"].attrs["units"] = str(cosmo.delta_dr.units)
+        f.create_dataset("slice_thickness", data=cosmo_real.delta_dr.value)
+        f["slice_thickness"].attrs["units"] = str(cosmo_real.delta_dr.units)
 
-        f.create_dataset("survey_density", data=survey_density.value)
-        f["survey_density"].attrs["units"] = str(survey_density.units)
+        f.create_dataset("survey_density", data=correlation.survey_density.value)
+        f["survey_density"].attrs["units"] = str(correlation.survey_density.units)
+        
+        f.create_dataset("survey_area", data=correlation.survey_area.value)
+        f["survey_density"].attrs["units"] = str(correlation.survey_area.units)
 
-        f.create_dataset("bao", data=correlation.bao.value)
-        f["bao"].attrs["units"] = str(correlation.bao.units)
 
-        f.create_dataset("min", data=correlation.min.value)
-        f["min"].attrs["units"] = str(correlation.min.units)
+        f.create_dataset("s_bin_centers", data=correlation.s_bin_centers)
+        f["s_bin_centers"].attrs["units"] = str(u.rad)
 
-        f.create_dataset("max", data=correlation.max.value)
-        f["max"].attrs["units"] = str(correlation.max.units)
+        f.create_dataset("mu_bin_centers", data=correlation.mu_bin_centers)
+        
 
-        f.create_dataset("bin_centers", data=correlation.bin_centers.value)
-        f["bin_centers"].attrs["units"] = str(correlation.bin_centers.units)
-
-        f.create_dataset("bin_width", data=correlation.bin_width.value)
-        f["bin_width"].attrs["units"] = str(correlation.bin_width.units)
 
     print("Saved single-slice Landy-Szalay histogram to", output_filename)
     return output_filename #for plotting in the same pipeline!
-

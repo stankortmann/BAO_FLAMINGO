@@ -1,6 +1,8 @@
 import numpy as np
 from numba import njit, prange
 import unyt as u
+from scipy.interpolate import interp1d
+from scipy.integrate import cumtrapz
 
 
 
@@ -84,24 +86,86 @@ class coordinate_tools:
         return sph_coords
     
     @staticmethod
-    def spherical_to_cartesian_positions(sph_coords, cosmo):
-        """
-        Convert spherical coords (z,theta,phi) and redshift array -> Cartesian positions (N,3)
-        using cosmology object `cosmo_to_use` that provides comoving_distance(z).
-        Assumes sph_coords = array (N,2) with (theta, phi) in radians (same as your coordinate_tools).
-        """
+    def theta_phi_z_to_ra_dec_r(coords, cosmo):
+        
         
         # cosmo must provide comoving_distance(z) returning astropy Quantity in Mpc
-        chi = cosmo.comoving_distance(sph_coords[:,0]) #shape (N)
+        r = cosmo.comoving_distance(coords[:,2]) #shape (N)
         
 
-        # convert (theta,phi) to unit vectors
-        unit_vec = self.theta_phi_to_unitvec(sph_coords[:,1:])# shape (N,3)
+        # convert (theta,phi) to (rad,dec)
+        ra_dec = coordinate_tools.theta_phi_to_ra_dec(coords[:,:2]).to('deg')
         
 
-        # Cartesian coordinates in Mpc
-        pos = chi*unit_vec  # shape (N,3)
-        return pos
+        #stack and transpose. Also strip the values
+        pos= (np.column_stack((ra_dec.value,r.value))).T
+            # retrieve units automatically
+        units = {
+            'ra': ra_dec[:, 0].units,
+            'dec': ra_dec[:, 1].units,
+            'r': r.units
+        }
+
+
+        return pos, units
+
+
+
+    @staticmethod
+    def random_redshifts_from_data_cdf(data_z, n_random, smoothing=0.02, rng=None):
+        """
+        Draw random redshifts from the empirical n(z) of the data sample.
+
+        Parameters
+        ----------
+        data_z : array-like
+            Redshift values of the data sample.
+        n_random : int
+            Number of random redshifts to generate.
+        smoothing : float, optional
+            Gaussian smoothing width (in z) applied to the histogram to avoid discreteness.
+        seed : int, optional
+            Random seed for reproducibility.
+
+        Returns
+        -------
+        z_random : ndarray
+            Randomly drawn redshifts following the normalized n(z) distribution.
+        z_grid : ndarray
+            Grid of redshift values used for interpolation.
+        n_z_norm : ndarray
+            Normalized n(z) PDF on the grid.
+        """
+
+        rng = np.random.default_rng(seed)
+
+        # 1. Build histogram of data redshifts
+        z_min, z_max = np.min(data_z), np.max(data_z)
+        nbins = int(np.sqrt(len(data_z)))  # rule of thumb
+        hist, edges = np.histogram(data_z, bins=nbins, range=(z_min, z_max), density=True)
+        z_grid = 0.5 * (edges[:-1] + edges[1:])
+
+        # 2. Optional smoothing (Gaussian kernel)
+        if smoothing > 0:
+            from scipy.ndimage import gaussian_filter1d
+            hist = gaussian_filter1d(hist, smoothing / (edges[1] - edges[0]))
+
+        # 3. Normalize the PDF
+        n_z_norm = hist / np.trapz(hist, z_grid)
+
+        # 4. Compute the CDF for inverse transform sampling
+        cdf = cumtrapz(n_z_norm, z_grid, initial=0)
+        cdf /= cdf[-1]  # normalize to 1
+
+        # 5. Interpolate inverse CDF
+        inv_cdf = interp1d(cdf, z_grid, bounds_error=False, fill_value=(z_min, z_max))
+
+        # 6. Draw uniform samples and map to z
+        u_rand = rng.random(n_random)
+        z_random = inv_cdf(u_rand)
+
+        return z_random, n_z_norm
+
 
 
     @staticmethod

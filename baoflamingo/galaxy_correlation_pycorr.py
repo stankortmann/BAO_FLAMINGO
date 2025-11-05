@@ -34,7 +34,6 @@ class correlation_tools_pycorr:
         self.coordinates = coordinates
         self.n_galaxies = np.shape(coordinates)[0]
         self.n_random = int(cfg.random_catalog.oversampling * self.n_galaxies)
-        self.seed = cfg.random_catalog.seed
         self.cosmo = cosmology
        
 
@@ -49,24 +48,53 @@ class correlation_tools_pycorr:
         
 
         # derived bin mids
-        self.s_bins_center = 0.5 * (self.s_edges[:-1] + self.s_edges[1:])
+        self.s_bin_centers = 0.5 * (self.s_edges[:-1] + self.s_edges[1:])
         # choose mu midpoints as centers of mu bins
-        self.mu_bins_center = 0.5 * (self.mu_edges[:-1] + self.mu_edges[1:])
+        self.mu_bin_centers = 0.5 * (self.mu_edges[:-1] + self.mu_edges[1:])
 
         # save other settings
         self.npatches = cfg.statistics.n_patches
 
         # RNG
-        self.rng = np.random.default_rng(self.seed)
+        self.rng = np.random.default_rng(cfg.random_catalog.seed)
 
-        # generate randoms (in spherical coords as before)
-        self._generate_random()
+        
 
         # Build pycorr randoms and run jackknife two-point count + estimator
         # Run the Landy-Szalay estimator using pycorr jackknife machinery
-        self._run_pycorr(catalog_coords=coordinates)
+        
+        self._run_pycorr(sph_coords=coordinates,cosmo=self.cosmo)
+        self._survey_density()
 
-    def _generate_random(self):
+    
+    def _survey_density(self):
+        """
+        Calculate the density of galaxies per square degree, with units.
+
+        Parameters
+        ----------
+        n_galaxies : int
+            Number of galaxies in the survey.
+
+        Returns
+        -------
+        density : astropy.units.Quantity
+            Density of galaxies per square degree.
+        """
+        if self.cosmo.complete_sphere:
+            area_sr = 4 * np.pi * u.sr  # full sphere in steradians
+        else:
+            # Spherical cap area in steradians
+            area_sr = 2 * self.cosmo.max_angle.value \
+            * (1 - np.cos(self.cosmo.max_angle.value)) * u.sr
+        
+        # Convert steradians to square degrees
+        self.survey_area = area_sr.to(u.deg**2)
+        self.survey_density = self.n_galaxies /self.survey_area
+          
+
+
+    def _generate_random(self,data_z):
         """Generate random points in spherical coordinates like before."""
         # use same logic as your treecorr version for incomplete sphere
         if self.cosmo.complete_sphere:
@@ -84,21 +112,24 @@ class correlation_tools_pycorr:
                                       high=max_phi,
                                       size=self.n_random)
 
-        # sample D_c using inverse CDF for p(D_c) ∝ D_c^2 between inner/outer edges
-        u_rand = self.rng.random(self.n_random) #0 to 1
-        D_c = ((u_rand * (self.cosmo.outer_edge_bin**3 - self.cosmo.inner_edge_bin**3)) \
-               + self.cosmo.inner_edge_bin**3)**(1/3)
 
-        # map to redshift using your existing cosmology interface
-        random_redshift = self.cosmo.comoving_distance_to_redshift(D_c.value)
+        #we have to sample using n(z) fitted by the data!!!
+        # sample D_c using inverse CDF for n(z) between inner/outer edges of the data
+        random_z,n_z_norm=coordinate_tools.random_redshifts_from_data_cdf(
+                                data_z=data_z,
+                                n_random=self.n_random, 
+                                smoothing=0.02,#Gaussian smoothing, needs tweaking!
+                                rng=self.rng
+                                )
 
         # keep same spherical coords format as your original class
-        self.random = np.column_stack((random_redshift, random_theta, random_phi)) #z,theta,phi shape (N,3)
+        self.random = np.column_stack((random_theta,random_phi,random_z)) #(phi,theta,z) shape (N,3)
         
 
         # compute effective redshift/radius for geometric conversions (optional)
-        self.effective_redshift = self.cosmo.effective_redshift(self.randoms_redshift)
-        self.effective_radius = self.cosmo.effective_comoving_distance(self.randoms_redshift)
+        #this ultimately decides the tension at that redshift
+        self.effective_redshift = self.cosmo.effective_redshift(random_z)
+        self.effective_radius = self.cosmo.effective_comoving_distance(random_z)
 
 
 
@@ -109,40 +140,30 @@ class correlation_tools_pycorr:
         
         Always input the data an randoms in the form (2,N_points) for (ra,dec) 
         or (3,N_points) for cartesian coordinates.
+
         """
+
+        # --- Generate randoms (in spherical coords as before)
+        self._generate_random(sph_coords[:,2])#input z coordinates of data to get cdf distribution
 
         # ---- Prepare data positions (cartesian) using a  cosmology ----
         
-        # data and randoms are in the form (N,(z,theta,phi))
-        pos_data = (coordinate_tools.spherical_to_cartesian_positions(sph_coords, cosmo)).T  # shape (3,N)
-        # --- introduce ra_dec for data to introduce patches for jackknifing, shape (2,N)
-        ra_dec_data= (coordinate_tools.theta_phi_to_ra_dec(sph_coords[:,:1]).to('deg')).T#convert to degrees
-        
-        # ---- Prepare random positions converted using the same cosmology (for RR) ----
-    
-        pos_random = (coordinate_tools.spherical_to_cartesian_positions(self.random,cosmo)).T # shape (3,N)
-        # --- introduce ra_dec for randoms to introduce patches for jackknifing, shape (2,N)
-        ra_dec_random= coordinate_tools.theta_phi_to_ra_dec(self.random[:,:1]).to('deg')#convert to degrees
-        
+        # data and randoms are in the form (N,(theta,phi,z)) and going to ((ra,dec,r),N)
+        pos_data,pos_units = coordinate_tools.theta_phi_z_to_ra_dec_r(sph_coords, cosmo)# shape (3,N)
+        pos_random,__ =coordinate_tools.theta_phi_z_to_ra_dec_r(self.random, cosmo)# shape (3,N)
         
         # ---- Build jackknife subsampler on the randoms (ra,dec) coordinates;
         # using kmeans for roughly equal-area patches ---- 
      
-        
-        subsampler = KMeansSubsampler(mode='angular', positions=ra_dec_random, 
-                nsamples=self.npatches,position_type='rd', random_state=self.seed)
-        # labels for each random (and data) point:
-        patch_labels_random = subsampler.label(ra_dec_random, position_type='rd')
-        patch_labels_data = subsampler.label(pos_data, position_type='rd')
        
-
-        # ---- Prepare pycorr inputs: positions as arrays of shape (3, N) ----
-        # pycorr expects a list/array of 3 arrays (x,y,z) for positions depending on position_type; we will pass 'pos' in TwoPointCounter so use pos.T
-        positions1 = pos_data.T  # shape (3, Ndata)
-        positions2 = None  # maybe a shifted 
-        # samples1: labels of jackknife region for each galaxy
-        samples1 = patch_labels_data
-        samples2 = None
+        subsampler = KMeansSubsampler(mode='angular', positions=pos_random[:2,:], 
+                nsamples=self.npatches,position_type='rd', random_state=self.seed)
+        
+        # labels for each random (and data) point:
+        patch_labels_random = subsampler.label(pos_random[:2,:], position_type='rd')
+        patch_labels_data = subsampler.label(pos_data[:2,:], position_type='rd')
+        
+       
 
         # ---- Setup edges for pycorr JackknifeTwoPointCounter ----
         # pycorr expects tuple of arrays; for mode 'smu' that's (s_edges, mu_edges)
@@ -152,10 +173,8 @@ class correlation_tools_pycorr:
         weights_data = None
         weights_random = None
 
-        # Now instantiate the JackknifeTwoPointCounter to compute jackknife realizations
-        # NOTE: the exact constructor call can vary across pycorr versions. The snippet you provided indicates:
-        # JackknifeTwoPointCounter(mode, edges, positions1, samples1, weights1=..., positions2=..., samples2=..., ...)
-        
+        # Now instantiate the TwoPointCorrelationFunction
+  
         ls = TwoPointCorrelationFunction(
             mode='smu',
             edges=self.edges,
@@ -166,16 +185,27 @@ class correlation_tools_pycorr:
             randoms_samples1=patch_labels_random,
             randoms_weights1=weights_random,
             bin_type='lin',          # linear bins -> faster
-            position_type='xyz',     # positions are provided as (3,N) pos
-            weight_type=None,
+            position_type='rdd',     # positions are provided as (3,N)
+            #weight_type=None, #this is acting weird
             los='midpoint',
-            estimator='landayszalay',
+            estimator='landyszalay',
             nthreads=1,
+            gpu=False
             )
+        #actually running the estimator (including the jackknife method)
+        ls_avg,ls_cov=ls.get_corr(return_cov=True)
+        ls_std = np.sqrt(np.diag(ls_cov))
+        #reshaping
+        ls_std=ls_std.reshape(np.shape(ls_avg))
+       # Boolean array where True indicates NaN
+        nan_mask = np.isnan(ls_avg)
 
-        dir(ls)
-        # store outputs on the instance
-        self.ls= ls
+        # Count total number of NaNs
+        num_nans = np.sum(nan_mask)
+        print("Number of NaNs:", num_nans)
+        
+        self.ls_avg= ls_avg
+        self.ls_std= ls_std
         # keep metadata
         self.patch_labels_data = patch_labels_data
-        self.patch_labels_randoms = patch_labels_randoms
+        self.patch_labels_randoms = patch_labels_random
