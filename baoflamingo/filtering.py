@@ -16,10 +16,12 @@ class filtering_tools:
         #stellar mass filter parameters and if we have to use it
         self.stellar_mass_filter_switch=cfg.filters.stellar_mass_filter
         self.stellar_mass_cutoff=cfg.filters.stellar_mass_cutoff
-        #luminosity filter 
+        #luminosity filter
+        self.survey=cfg.filters.survey 
         self.luminosity_filter_switch=cfg.filters.luminosity_filter
-        self.filter_band=cfg.filters.band
-        self.m_cutoff=cfg.filters.m_cutoff
+        #only in case of bgs
+        if self.survey=='bgs':
+            self.m_r_cutoff=cfg.filters.m_r_cutoff
         
         
         #empty mask if filters are not applied, complete pass
@@ -164,8 +166,6 @@ class filtering_tools:
         #we have to convert to absolute magnitudes in each band
         M_ab_bands=-2.5*np.log10(lum) #in AB mag
         
-        #calculate rest frame band from input band and redshift
-        log_rest_band=np.log10(lambda_eff[bands.index(self.filter_band)]/(1+self.cosmo.redshift))
 
         
 
@@ -173,7 +173,7 @@ class filtering_tools:
          # Interpolate in log-log space
          #use scipy for interpolation, much faster than numpy
 
-         
+        """
         interp_func = interp1d(
                     log_lambda_eff,
                     M_ab_bands.T,  # shape (N_bands, N_galaxies), transposed
@@ -182,25 +182,67 @@ class filtering_tools:
                     bounds_error=False,
                     fill_value='extrapolate'
                 )
+        """
 
-        M_ab_rest = interp_func(log_rest_band)  # returns (N_galaxies,)
+        
 
 
         #calculate apparent magnitude in the selected band
         #use the z component of the coordinates to calculate the luminosity distance
         D_L = self.cosmo.luminosity_distance(coordinates[:,2]).to('pc')# convert Mpc → pc)
-        m = M_ab_rest + 5 * np.log10(D_L)  -5
-
+        
+        """
         print('statistics of apparent magnitude:')
         print('maximum:',np.max(m))
         print('minimum:',np.min(m))
         print('average:',np.average(m))
         print('median:',np.median(m))
+        """
 
-        m_mask = (m<=self.m_cutoff)
+        def band_apparent_magnitude(z,band):
+            #calculate rest frame band from input band and redshift
+
+            if band=='w1':
+                #3368nm is the lambda eff for the w1 filter
+                log_rest_band=np.log10(3368/(1+z)) 
+
+            else:    
+
+                ## check this!!@!!!!!!!!!!!!!!!
+                log_rest_band=np.log10(lambda_eff[bands.index(band)]/(1+z))
+            M_ab_rest = np.array([np.interp(log_rest_band[i], 
+                    log_lambda_eff, M_ab_bands[i, :]) 
+                      for i in range(len(z))])
+
+            m = M_ab_rest + 5 * np.log10(D_L)  -5
+            print("m shape: ",np.shape(m))
+            return m
+
+        def target_filter_bgs(redshift):
+            m_r=band_apparent_magnitude(z=redshift,band='r')
+            mask = (m_r<=self.m_r_cutoff)
+            return mask
+        
+        def target_filter_lrg(redshift):
+            m_r=band_apparent_magnitude(z=redshift,band='r')
+            m_z=band_apparent_magnitude(z=redshift,band='z')
+            m_g=band_apparent_magnitude(z=redshift,band='g')
+            m_w1=band_apparent_magnitude(z=redshift,band='w1')
+
+            #here are all the selection criteria of the LRG survey
+            mask= (m_z-m_w1>0.8*(m_r-m_z)-0.6)
+            mask &= ((m_g-m_w1>2.9) | (m_r-m_w1>1.8))
+            mask &= ((m_r-m_w1>1.8*(m_w1-17.4)) & 
+                    ((m_r-m_w1>m_w1-16.33) | (m_r-m_w1>3.3)))
+            print("mask shape: ",np.shape(mask))
+            return mask
 
 
-       
+        if self.survey == 'bgs':
+            m_mask=target_filter_bgs(redshift=coordinates[:,2])
+        if self.survey == 'lrg':
+            m_mask=target_filter_lrg(redshift=coordinates[:,2])
+            
         pass_fraction = np.count_nonzero(m_mask) / len(m_mask) * 100
         print(f"Pass percentage after luminosity filter of \
 galaxies with stellar mass: {pass_fraction:.2f}%")
@@ -211,5 +253,12 @@ galaxies with stellar mass: {pass_fraction:.2f}%")
         
         coordinates=coordinates[m_mask]
         print("Luminosity filter applied")
+        
+        
+        
+        
+        
+        ##for testing of luminosity only!!
+        #np.savetxt('redshift_data.txt',coordinates[:,2])
         return coordinates
 

@@ -145,7 +145,8 @@ def run_pipeline_single(cfg):
     gc.collect()
 
     # --- Radial filter ---
-    # This one will update total_mask and return (theta, phi,z) with 
+    # This one will update total_mask and return (theta, phi,z)
+    # Also introduces errors in the redshift data (DESI target selection maximum error)
     d_coords_sph = filters.radial_filter(d_coords_sph)
 
     # --- Redshift filter ---
@@ -222,7 +223,7 @@ def run_pipeline_single(cfg):
 
 
         f.create_dataset("s_bin_centers", data=correlation.s_bin_centers)
-        f["s_bin_centers"].attrs["units"] = str(u.rad)
+        f["s_bin_centers"].attrs["units"] = str(u.Mpc)
 
         f.create_dataset("mu_bin_centers", data=correlation.mu_bin_centers)
         

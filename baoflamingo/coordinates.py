@@ -2,7 +2,8 @@ import numpy as np
 from numba import njit, prange
 import unyt as u
 from scipy.interpolate import interp1d
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
+from scipy.ndimage import gaussian_filter1d
 
 
 
@@ -137,7 +138,7 @@ class coordinate_tools:
             Normalized n(z) PDF on the grid.
         """
 
-        rng = np.random.default_rng(seed)
+        
 
         # 1. Build histogram of data redshifts
         z_min, z_max = np.min(data_z), np.max(data_z)
@@ -147,14 +148,13 @@ class coordinate_tools:
 
         # 2. Optional smoothing (Gaussian kernel)
         if smoothing > 0:
-            from scipy.ndimage import gaussian_filter1d
             hist = gaussian_filter1d(hist, smoothing / (edges[1] - edges[0]))
 
         # 3. Normalize the PDF
         n_z_norm = hist / np.trapz(hist, z_grid)
 
         # 4. Compute the CDF for inverse transform sampling
-        cdf = cumtrapz(n_z_norm, z_grid, initial=0)
+        cdf = cumulative_trapezoid(n_z_norm, z_grid, initial=0)
         cdf /= cdf[-1]  # normalize to 1
 
         # 5. Interpolate inverse CDF
@@ -164,7 +164,7 @@ class coordinate_tools:
         u_rand = rng.random(n_random)
         z_random = inv_cdf(u_rand)
 
-        return z_random, n_z_norm
+        return z_random,z_grid, n_z_norm
 
 
 

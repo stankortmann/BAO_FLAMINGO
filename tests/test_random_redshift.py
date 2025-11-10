@@ -1,22 +1,43 @@
-from BAO.baoflamingo.coordinates import coordinate_tools
+from baoflamingo.coordinates import coordinate_tools
 import numpy as np
 import matplotlib.pyplot as plt
 
 N_data = 2000
 rng=np.random.default_rng(42)
 # --- Synthetic galaxy redshift distribution ---
-z_data = np.concatenate([
-    rng.normal(0.5, 0.1, int(0.8 * N_data)),
-    rng.exponential(0.3, int(0.2 * N_data))
-])
-z_data = z_data[(z_data > 0.0) & (z_data < 2.0)]
+
+test=2
+
+
+if test==0:
+    z_data = np.concatenate([
+        rng.normal(0.5, 0.1, int(0.8 * N_data)),
+        rng.exponential(0.3, int(0.2 * N_data))
+    ])
+
+    z_data = z_data[(z_data > 0.0) & (z_data < 2.0)]
+
+if test==1:
+    # Three populations with declining weights
+    z_low = np.random.normal(0.3, 0.05, size=300)   # many galaxies
+    z_mid = np.random.normal(0.5, 0.05, size=150)   # fewer galaxies
+    z_high = np.random.normal(0.7, 0.07, size=50)   # rare galaxies
+
+    # Concatenate into a single array
+    z_data = np.concatenate([z_low, z_mid, z_high])
+
+    # Keep within physical range 0 < z < 1
+    z_data = z_data[(z_data > 0) & (z_data < 1)]
+
+if test == 2:
+    z_data = np.loadtxt('redshift_data.txt')
 
 # --- Generate random redshifts from n(z) ---
 n_random = 5 * len(z_data)
 z_rand, z_grid, n_z = coordinate_tools.random_redshifts_from_data_cdf(
-    z_data=z_data, 
+    data_z=z_data, 
     n_random=n_random, 
-    smoothing=0.03, 
+    smoothing=0.01, 
     rng=rng
     )
 

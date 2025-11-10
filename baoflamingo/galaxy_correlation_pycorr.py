@@ -56,7 +56,8 @@ class correlation_tools_pycorr:
         self.npatches = cfg.statistics.n_patches
 
         # RNG
-        self.rng = np.random.default_rng(cfg.random_catalog.seed)
+        self.seed=cfg.random_catalog.seed
+        self.rng = np.random.default_rng(self.seed)
 
         
 
@@ -115,10 +116,10 @@ class correlation_tools_pycorr:
 
         #we have to sample using n(z) fitted by the data!!!
         # sample D_c using inverse CDF for n(z) between inner/outer edges of the data
-        random_z,n_z_norm=coordinate_tools.random_redshifts_from_data_cdf(
+        random_z,grid_z, n_z_norm=coordinate_tools.random_redshifts_from_data_cdf(
                                 data_z=data_z,
                                 n_random=self.n_random, 
-                                smoothing=0.02,#Gaussian smoothing, needs tweaking!
+                                smoothing=0.01,#Gaussian smoothing, needs tweaking!
                                 rng=self.rng
                                 )
 

@@ -39,6 +39,9 @@ if __name__ == "__main__":
 
         
         data_filename = run_pipeline_single(cfg)
+
+
+       
         data_plot = plot_correlation_2d(
             cfg=cfg,
             filename=data_filename,

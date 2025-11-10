@@ -1,8 +1,0 @@
-setup.py
-baoflamingo.egg-info/PKG-INFO
-baoflamingo.egg-info/SOURCES.txt
-baoflamingo.egg-info/dependency_links.txt
-baoflamingo.egg-info/requires.txt
-baoflamingo.egg-info/top_level.txt
-tests/test_random_redshift.py
-tests/test_treecorr.py

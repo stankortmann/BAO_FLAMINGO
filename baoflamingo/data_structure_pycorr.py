@@ -26,8 +26,8 @@ class Filters:
     stellar_mass_filter: bool
     stellar_mass_cutoff: float
     luminosity_filter: bool
-    band: str
-    m_cutoff: float
+    survey: str
+    m_r_cutoff: float
     
 @dataclass
 class Plotting:
