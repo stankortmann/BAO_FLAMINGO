@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import unyt as u
 import h5py
+from scipy.interpolate import UnivariateSpline
 
 def plot_correlation_2d(cfg, filename, save_plot=True,mu_rebinning=1, s_rebinning=1):
     """
@@ -36,6 +37,7 @@ def plot_correlation_2d(cfg, filename, save_plot=True,mu_rebinning=1, s_rebinnin
     s = data["s_bin_centers"]
     mu = data["mu_bin_centers"]
     xi = data["ls_avg"]  # shape: (len(s), len(mu))
+    std= data["ls_std"] # shape: (len(s), len(mu))
     
     s_bao = 150
     window = 20 # Mpc around BAO scale
@@ -66,10 +68,7 @@ def plot_correlation_2d(cfg, filename, save_plot=True,mu_rebinning=1, s_rebinnin
 
     # --- Plotting ---
     plt.figure(figsize=(8, 6))
-    # transpose xi to align axes
-    #vmin, vmax = np.nanpercentile(xi, [2, 98])  # e.g. 2nd–98th percentile range
-    #vmin, vmax = -0.1,0.1 #overwritten, has to be adjusted on a per snapshot basis
-    #needs more focus!!
+    
 
     im = plt.pcolormesh(s_rebin, mu_rebin, xi_rebin.T, shading="auto", cmap="seismic",
                     vmin=vmin, vmax=vmax) 
@@ -77,6 +76,20 @@ def plot_correlation_2d(cfg, filename, save_plot=True,mu_rebinning=1, s_rebinnin
     plt.xlabel(f"s [{s.units}] (Comoving)")
     plt.ylabel(f"μ")
     plt.title(filename.split("/")[-1])
+    # s-coordinate of max for each μ, plotting the BAO ridge
+    s_bao_max = np.array([s[mask_bao][np.nanargmax(xi[mask_bao, i])] for i in range(len(mu))])
+
+    # --- Spline fit ---
+    spline = UnivariateSpline(mu, s_bao_max, s=2000)
+    mu_smooth = np.linspace(mu.min(), mu.max(), 500)
+    s_smooth = spline(mu_smooth)
+    
+    # Plot spline
+    plt.plot(s_smooth, mu_smooth, color='green', 
+    linestyle='--', linewidth=2, label="BAO ridge spline")
+    plt.legend()
+    
+    #plt.plot(s_bao_max, mu, color='green', linestyle='--', linewidth=4, label="BAO ridge")
     plt.grid(False)
 
     if save_plot:

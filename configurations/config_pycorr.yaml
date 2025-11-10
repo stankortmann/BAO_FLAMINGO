@@ -2,10 +2,10 @@ paths:
   directory: /cosma8/data/dp004/flamingo/Runs/ #do not touch!
   soap_hbt_subpath: SOAP-HBT/halo_properties_00 #do not touch!
 
-  simulation: L1000N0900/HYDRO_FIDUCIAL #only thouch this part!
+  simulation: L1000N3600/HYDRO_FIDUCIAL #only thouch this part!
   redshift_file: output_list.txt
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [60,61,62,63,64,65,66,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  snapshot_number: [65] #for numbers below 10: fill in 06 or 07, not 6 and 7
   output_directory: results_angular_4 #full path if necessary
 
 slicing:
@@ -21,10 +21,10 @@ filters:
   stellar_mass_filter: on
   stellar_mass_cutoff: 0
 
-  #survey: lrg #can also be bgs
+  
   luminosity_filter: on
+  survey: lrg #bgs or lrg
 
-  survey: lrg #or lrg
   #bgs input, if survey=lrg we do not need any inputs
   m_r_cutoff: 21 #apparent band magnitude for the observer
 

@@ -4,7 +4,7 @@ import numpy as np
 # Our own modules
 import baoflamingo.data_structure_pycorr as ds
 from baoflamingo.pipeline_single_pycorr import run_pipeline_single
-from baoflamingo.plotting_pycorr import plot_correlation_2d
+ baoflamingo.plotting_pycorr import CorrelationPlotter 
 
 
 ############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############

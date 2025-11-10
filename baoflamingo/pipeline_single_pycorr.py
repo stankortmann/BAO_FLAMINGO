@@ -179,7 +179,6 @@ def run_pipeline_single(cfg):
     
     
 
-    print(correlation.ls_avg)
     print("Survey density :", correlation.survey_density)
     
     

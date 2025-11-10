@@ -164,7 +164,7 @@ class filtering_tools:
 
         #loading in luminosities in all bands
         #we have to convert to absolute magnitudes in each band
-        M_ab_bands=-2.5*np.log10(lum) #in AB mag
+        M_ab_bands=-2.5*np.log10(lum) #in AB mag, shape (N_gal, N_bands)
         
 
         
@@ -200,22 +200,44 @@ class filtering_tools:
         """
 
         def band_apparent_magnitude(z,band):
+
+            """
             #calculate rest frame band from input band and redshift
 
             if band=='w1':
                 #3368nm is the lambda eff for the w1 filter
                 log_rest_band=np.log10(3368/(1+z)) 
-
             else:    
-
-                ## check this!!@!!!!!!!!!!!!!!!
                 log_rest_band=np.log10(lambda_eff[bands.index(band)]/(1+z))
+            # check this!!!!!!!!!!!!!!!!!
             M_ab_rest = np.array([np.interp(log_rest_band[i], 
-                    log_lambda_eff, M_ab_bands[i, :]) 
-                      for i in range(len(z))])
+                log_lambda_eff, M_ab_bands[i, :]) 
+                    for i in range(len(z))])
+            """
+
+            # Interpolated magnitude for each galaxy
+            N_galaxies = len(z)
+            M_ab_rest = np.zeros(N_galaxies)
+            for i in range(N_galaxies):
+                # Determine rest-frame wavelength for this galaxy
+                if band == 'w1':
+                    #3368nm is the lambda eff for the w1 filter
+                    log_rest = np.log10(3368 / (1 + z[i]))
+                else:
+                    log_rest = np.log10(lambda_eff[bands.index(band)] / (1 + z[i]))
+                
+                # Interpolation function for this galaxy
+                interp_func = interp1d(
+                    np.log10(lambda_eff),
+                    M_ab_bands[i, :],  # shape (N_bands,)
+                    kind='linear',
+                    bounds_error=False,
+                    fill_value='extrapolate'
+                )
+                M_ab_rest[i] = interp_func(log_rest)
 
             m = M_ab_rest + 5 * np.log10(D_L)  -5
-            print("m shape: ",np.shape(m))
+            
             return m
 
         def target_filter_bgs(redshift):
@@ -259,6 +281,6 @@ galaxies with stellar mass: {pass_fraction:.2f}%")
         
         
         ##for testing of luminosity only!!
-        #np.savetxt('redshift_data.txt',coordinates[:,2])
+        np.savetxt('redshift_data.txt',coordinates[:,2])
         return coordinates
 
