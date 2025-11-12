@@ -9,7 +9,7 @@ paths:
   output_directory: results_angular_4 #full path if necessary
 
 slicing:
-  redshift_bin_width: 0.15 #delta_z of the complete bin, will mark the shell volume
+  redshift_bin_width: 0.2 #delta_z of the complete bin, will mark the shell volume
   
 
 random_catalog:
@@ -57,7 +57,7 @@ statistics:
   n_patches: 100 #jackknife patches
 
 fiducial:
-  cosmology: planck18
+  cosmology: illustris
   #options:
   #'planck18-only', 'planck18', 'planck15-only', 
   #'planck15', 'planck13-only', 'planck13', 'WMAP9-only', 

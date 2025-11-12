@@ -34,7 +34,11 @@ class correlation_plotter:
         #bao settings
         bao = cfg.plotting.expected_bao_position*u.Mpc
         bao_window = cfg.plotting.bao_window*u.Mpc
+        #window around the expected BAO position for plotting, determines the 
+        #colormesh scale, important and configured in yaml file
         self.mask_bao = (self.s > bao - bao_window) & (self.s < bao + bao_window)
+        #this is a wide window only for the 1d correlation plot, hardcoded though
+        self.mask_1d_bao = (self.s > bao - 50) & (self.s < bao + 50)
         self.bao_ridge = cfg.plotting.plot_bao
 
         #plotting if you want to plot the following statistics
@@ -153,9 +157,10 @@ class correlation_plotter:
 
     def _plot_1d_correlation(self):
         """Average ξ(s, μ) over μ and plot 1D correlation."""
+
         xi_mean = np.mean(self.xi, axis=1)
-        s_plot = self.s[self.mask_bao] 
-        xi_plot = xi_mean[self.mask_bao] 
+        s_plot = self.s[self.mask_1d_bao] 
+        xi_plot = xi_mean[self.mask_1d_bao] 
 
         plt.figure(figsize=(8,6))
         plt.plot(s_plot, xi_plot)
