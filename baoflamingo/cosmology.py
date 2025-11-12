@@ -5,49 +5,58 @@ from astropy.constants import c
 from scipy.optimize import curve_fit
 from scipy.interpolate import PchipInterpolator
 import unyt as u
+import astropy.units as au
 
 
 
 class cosmo_tools:
     def __init__(self,
     box_size,
-    H0,
-    Omega_m, 
-    Omega_lambda, 
-    Tcmb, Neff,
-    Omega_b, 
+    constants,
     redshift,
     redshift_bin_width):
-
-
+        #for colossus cosmology class
+        if constants.name is not None:
+            self.name=constants.name
+        else: #for the swiftsimio cosmology class
+            self.name=type(constants).__name__
         self.box_size=box_size
         #Hubble constant
-        self.H0 = H0
+
+        #strip units if necessary, always in km/s/Mpc for fiducial and real cosmology
+        if isinstance(constants.H0, au.quantity.Quantity):
+            self.H0 = constants.H0.value
+        else:
+            self.H0 = constants.H0
+
+  
         self.h = self.H0 / 100.0
         #total matter
-        self.Omega_m = Omega_m
+        self.Omega_m = constants.Om0
         self.Omh2 = self.Omega_m * self.h**2
         #baryons
-        self.Omega_b = Omega_b
+        self.Omega_b = constants.Ob0
         self.Ombh2 = self.Omega_b * self.h**2
         #dark energy
-        self.Omega_lambda = Omega_lambda
+        self.Omega_lambda = constants.Ode0
         #cmb
-        self.Tcmb = Tcmb
-        self.Neff = Neff
+        if isinstance(constants.Tcmb0, au.quantity.Quantity):
+            self.Tcmb = constants.Tcmb0.value
+        else:
+            self.Tcmb = constants.Tcmb0
+        #neutrinos
+        self.Neff = constants.Neff
+       
         #radiation
         self.Omega_gamma=2.472e-5 * (self.Tcmb / 2.7255)**4 /(self.h)**2
         self.Omega_r = self.Omega_gamma * (1.0 + 0.2271 * self.Neff)
         #curvature
+        
         self.Omega_k = 1.0 - self.Omega_m - self.Omega_r - self.Omega_lambda
+        
         #constants
         self.c_km_s = c.to('km/s').value
 
-        # --- Drag epoch redshift ---
-        self.b1 = 0.313 * self.Omh2**(-0.419) * (1 + 0.607 * self.Omh2**0.674)
-        self.b2 = 0.238 * self.Omh2**0.223
-        self.z_drag = 1291 * self.Omh2**0.251 / (1 + 0.659 * self.Omh2**0.828) *\
-         (1 + self.b1 * self.Ombh2**self.b2)
 
         #save all the importan parameters here
         self.redshift=redshift
@@ -149,6 +158,11 @@ class cosmo_tools:
         Compute BAO comoving sound horizon r_d at the drag epoch.
         Based on Eisenstein & Hu (1998).
         """
+        # --- Drag epoch redshift ---
+        b1 = 0.313 * self.Omh2**(-0.419) * (1 + 0.607 * self.Omh2**0.674)
+        b2 = 0.238 * self.Omh2**0.223
+        z_drag = 1291 * self.Omh2**0.251 / (1 + 0.659 * self.Omh2**0.828) *\
+         (1 + b1 * self.Ombh2**b2)
 
         # --- Sound horizon integral ---
         def R_of_z(zp):
@@ -160,7 +174,7 @@ class cosmo_tools:
         def integrand(zp):
             return c_s(zp) / (self.H0 *self.E(zp))
 
-        r_d, _ = quad(integrand, self.z_drag, 1e7, epsrel=1e-6, limit=200)
+        r_d, _ = quad(integrand, z_drag, 1e7, epsrel=1e-6, limit=200)
         return r_d*u.Mpc
 
     def _comoving_distance_to_redshift(self):

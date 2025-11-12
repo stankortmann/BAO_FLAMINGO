@@ -256,7 +256,7 @@ class filtering_tools:
             mask &= ((m_g-m_w1>2.9) | (m_r-m_w1>1.8))
             mask &= ((m_r-m_w1>1.8*(m_w1-17.4)) & 
                     ((m_r-m_w1>m_w1-16.33) | (m_r-m_w1>3.3)))
-            print("mask shape: ",np.shape(mask))
+            
             return mask
 
 

@@ -10,14 +10,11 @@ class correlation_plotter:
     1D projection, and BAO ridge spline fitting.
     """
 
-    def __init__(self, filename,
-    mu_rebin=1,
-    s_rebin=1,
-    bao=150,bao_window=20, #in comoving Mpc  
-    plot_bao_ridge=True,
-    plot_2d_correlation=True,
-    plot_2d_variance=False,
-    plot_1d_projection=True
+    def __init__(self, 
+                filename,
+                cfg,
+                mu_rebin=1,
+                s_rebin=1
     ):
         """
         Load correlation data from HDF5 file.
@@ -29,14 +26,24 @@ class correlation_plotter:
         """
         self.filename = filename
         self.load_data(filename)
-        self.mask_bao = (self.s.value > bao - bao_window) & (self.s.value < bao + bao_window)
-        self.bao_ridge = plot_bao_ridge
-        if plot_2d_correlation:
-            self._plot_2d_correlation(mu_rebin=mu_rebin, s_rebin=s_rebin)
-        if plot_2d_variance:    
+
+        #rebinning if needed
+        #subject to be introduced in the cfg file, for now set to 1 (no rebinning)
+        self._rebin_all(s_rebin=s_rebin, mu_rebin=mu_rebin)
+
+        #bao settings
+        bao = cfg.plotting.expected_bao_position*u.Mpc
+        bao_window = cfg.plotting.bao_window*u.Mpc
+        self.mask_bao = (self.s > bao - bao_window) & (self.s < bao + bao_window)
+        self.bao_ridge = cfg.plotting.plot_bao
+
+        #plotting if you want to plot the following statistics
+        if cfg.plotting.correlation_2d:
+            self._plot_2d_correlation()
+        if cfg.plotting.variance_2d:    
             self._plot_2d_variance()
-        if plot_1d_projection:
-            self._plot_1d_projection()
+        if cfg.plotting.correlation_1d:
+            self._plot_1d_correlation()
 
 
     def load_data(self, filename):
@@ -50,6 +57,7 @@ class correlation_plotter:
             self.mu = load_dataset("mu_bin_centers")
             self.xi = load_dataset("ls_avg")
             self.ls_std = load_dataset("ls_std") if "ls_std" in f else np.ones_like(self.xi)
+            
 
     @staticmethod
     def rebin(array, factor, axis=0):
@@ -71,16 +79,28 @@ class correlation_plotter:
         rebinned = array.reshape(new_shape).mean(axis=axis+1)
         return rebinned
 
-    def _plot_2d_correlation(self, mu_rebin=1, s_rebin=1):
+    def _rebin_all(self,s_rebin=1, mu_rebin=1):
+        #variance rebinning
+        self.var_xi = self.ls_std**2
+        self.var_xi = self.rebin(array=self.var_xi, factor=mu_rebin, axis=1)
+        self.var_xi = self.rebin(array=self.var_xi, factor=s_rebin, axis=0)
+
+        #correlation rebinning
+        self.xi = self.rebin(array=self.xi, factor=mu_rebin, axis=1)
+        self.xi = self.rebin(array=self.xi, factor=s_rebin, axis=0)
+
+        #mu and s rebinning
+        self.mu = self.rebin(self.mu, mu_rebin, axis=0)
+        self.s = self.rebin(self.s, s_rebin, axis=0)
+
+
+    def _plot_2d_correlation(self):
         """Plot 2D ξ(s, μ) heatmap with optional BAO ridge spline."""
-        xi_rebin = self.rebin(self.xi, mu_rebin, axis=1)
-        xi_rebin = self.rebin(xi_rebin, s_rebin, axis=0)
-        mu_rebin = self.rebin(self.mu, mu_rebin, axis=0)
-        s_rebin = self.rebin(self.s, s_rebin, axis=0)
+        
 
         plt.figure(figsize=(8,6))
-        vlim = np.nanmax(np.abs(xi_rebin[self.mask_bao, :]))
-        im = plt.pcolormesh(s_rebin, mu_rebin, xi_rebin.T, shading="auto", cmap="seismic",
+        vlim = np.nanmax(np.abs(self.xi[self.mask_bao, :]))
+        im = plt.pcolormesh(self.s, self.mu, self.xi.T, shading="auto", cmap="seismic",
                             vmin=-vlim, vmax=vlim)
         plt.colorbar(im, label="ξ(s, μ)")
         plt.xlabel(f"s [{self.s.units}] (Comoving)")
@@ -112,10 +132,11 @@ class correlation_plotter:
 
     def _plot_2d_variance(self):
         """Plot 2D variance (ls_std^2)."""
-        var_xi = self.ls_std
+        
+
+        var_xi = self.ls_std**2
         plt.figure(figsize=(8,6))
-        print(self.s)
-        im = plt.pcolormesh(self.s, self.mu, var_xi.T,
+        im = plt.pcolormesh(self.s, self.mu, self.var_xi.T,
              shading="auto", cmap="viridis",
              vmin=np.nanmin(var_xi[self.mask_bao, :]),
              vmax=np.nanmax(var_xi[self.mask_bao, :]))
@@ -130,8 +151,8 @@ class correlation_plotter:
         plt.savefig(filename_plot, dpi=300)
         print(f"2D covariance plot saved to {filename_plot}")
 
-    def _plot_1d_projection(self):
-        """Sum ξ(s, μ) over μ and plot 1D projection."""
+    def _plot_1d_correlation(self):
+        """Average ξ(s, μ) over μ and plot 1D correlation."""
         xi_mean = np.mean(self.xi, axis=1)
         s_plot = self.s[self.mask_bao] 
         xi_plot = xi_mean[self.mask_bao] 
@@ -140,7 +161,7 @@ class correlation_plotter:
         plt.plot(s_plot, xi_plot)
         plt.xlabel(f"s [{self.s.units}]")
         plt.ylabel("Σμ ξ(s, μ)")
-        plt.title("1D projection of ξ(s, μ)")
+        plt.title("1D correlation of ξ(s, μ) --> ξ(s)")
         #plotting
         filename_plot=str(self.filename)
         filename_plot=filename_plot.replace('.hdf5','_1d_correlation.png')

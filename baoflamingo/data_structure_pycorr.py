@@ -39,10 +39,24 @@ class Plotting:
     s_min: float
     s_max: float
 
+    expected_bao_position: float
+    bao_window: float
+    plot_bao: bool
+    
+    correlation_2d: bool
+    variance_2d: bool
+    correlation_1d: bool
+
 @dataclass
 class Statistics:
     n_patches: Union[int, List[int]]
 
+
+@dataclass
+class Fiducial:
+    cosmology: Union[str,list[str]]
+
+#important class that orders all the configurations
 @dataclass
 class Config:
     paths: Paths
@@ -51,3 +65,4 @@ class Config:
     filters: Filters
     plotting: Plotting
     statistics: Statistics
+    fiducial: Fiducial

@@ -7,13 +7,25 @@ import gc
 import threading
 import h5py
 import unyt as u
+import warnings
 
 # Our own modules
-import baoflamingo.galaxy_correlation_pycorr as gal_cor
-import baoflamingo.filtering as flt
-import baoflamingo.statistics as stat
-import baoflamingo.cosmology as cs
+from baoflamingo.galaxy_correlation_pycorr import correlation_tools_pycorr
+from baoflamingo.filtering import filtering_tools
+from baoflamingo.statistics import stat_tools
+from baoflamingo.cosmology import cosmo_tools
 from baoflamingo.coordinates import coordinate_tools
+
+
+
+# Suppress only RuntimeWarnings from swiftsimio about cosmo_factors
+#this has to be taken account of when changing coordinates from comoving to physical etc.
+
+warnings.filterwarnings(
+    "ignore",
+    category=RuntimeWarning,
+    message=r"Mixing arguments with and without cosmo_factors.*"
+)
 
 # --- Memory and monitor ---
 
@@ -61,19 +73,14 @@ def run_pipeline_single(cfg):
     metadata = data.metadata
     redshift = redshift_list[redshift_number]
     print("Snapshot redshift:", redshift)
-    cosmology = metadata.cosmology
+    simulation_cosmology = metadata.cosmology
     box_size = metadata.boxsize[0]
     print(box_size)
     centre = np.array([box_size.value / 2] * 3)
     
-    cosmo_real = cs.cosmo_tools(
+    cosmo_real = cosmo_tools(
         box_size=box_size,
-        H0=cosmology.H0.value,
-        Omega_m=cosmology.Om0,
-        Omega_b=cosmology.Ob0,
-        Omega_lambda=cosmology.Ode0,
-        Tcmb=cosmology.Tcmb0.value,
-        Neff=cosmology.Neff,
+        constants=simulation_cosmology,
         redshift=redshift,
         redshift_bin_width=cfg.slicing.redshift_bin_width #delta_z
     )
@@ -118,7 +125,7 @@ def run_pipeline_single(cfg):
     # --- Filtering set up---
     #we select the targets on their real cosmology
     #this eventually really dictates the target selection
-    filters = flt.filtering_tools(
+    filters = filtering_tools(
         soap_file=data,
         cosmology=cosmo_real,
         cfg=cfg #all the inputs of the configuration
@@ -167,66 +174,93 @@ def run_pipeline_single(cfg):
         return
     
     print("Data size after filtering:", data_size)
-    
+
+
+    """
+    Up until now we have filtered the galaxies according to the real cosmology of the 
+    simulation box. Now we can proceed to the correlation function calculation. We can do this
+    for either the real cosmology or a fiducial cosmology that is different from the real one.
+    This is set in the config file.
+    """
+    from colossus.cosmology import cosmology as cosmo_fiducial
+    #setting the cosmology to the one provided in the config file
+    cosmo_fiducial.setCosmology(cfg.fiducial.cosmology)
+
+    cosmo_fid = cosmo_tools(
+        box_size=box_size,
+        constants=cosmo_fiducial.current_cosmo,
+        redshift=redshift,
+        redshift_bin_width=cfg.slicing.redshift_bin_width #delta_z
+        )
+
+
+    #might add more cosmologies later on, so we do a list
+    cosmo_list = [cosmo_real,cosmo_fid]
+    filenames=[]
+
+
     # --- Correlation ---
-    
-    correlation = gal_cor.correlation_tools_pycorr(
-            coordinates=d_coords_sph,
-            cosmology=cosmo_real,
-            cfg=cfg
-    
-    )
-    
-    
 
-    print("Survey density :", correlation.survey_density)
-    
-    
-
-
-
-    # --- Save output using HDF5 ---
-
-    # Construct nested output directory structure
-    output_dir = os.path.join(cfg.paths.output_directory, simulation)
-
-    # Make sure it exists (this creates all intermediate subdirectories)
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Build the full file path
-    output_filename = os.path.join(
-        output_dir,
-        f"single_slice_snapshot_{redshift_number}.hdf5"
-    )
-
-    print("Saving results to:", output_filename)
-
-
-    with h5py.File(output_filename, "w") as f:
-
-        # --- Unitless arrays / scalars ---
-        f.create_dataset("oversampling_factor", data=cfg.random_catalog.oversampling)
-        f.create_dataset("random_size", data=correlation.n_random)
-        f.create_dataset("ls_avg", data=correlation.ls_avg)
-        f.create_dataset("ls_std", data=correlation.ls_std)
-
-        # --- Arrays / scalars with units ---
-        f.create_dataset("slice_thickness", data=cosmo_real.delta_dr.value)
-        f["slice_thickness"].attrs["units"] = str(cosmo_real.delta_dr.units)
-
-        f.create_dataset("survey_density", data=correlation.survey_density.value)
-        f["survey_density"].attrs["units"] = str(correlation.survey_density.units)
+    #will be done for all cosmologies provided
+    for cosmo in cosmo_list:
+        correlation = correlation_tools_pycorr(
+                coordinates=d_coords_sph,
+                cosmology=cosmo,
+                cfg=cfg
         
-        f.create_dataset("survey_area", data=correlation.survey_area.value)
-        f["survey_density"].attrs["units"] = str(correlation.survey_area.units)
+        )
+        
+        
 
-
-        f.create_dataset("s_bin_centers", data=correlation.s_bin_centers)
-        f["s_bin_centers"].attrs["units"] = str(u.Mpc)
-
-        f.create_dataset("mu_bin_centers", data=correlation.mu_bin_centers)
+        print("Survey density :", correlation.survey_density)
+        
         
 
 
-    print("Saved single-slice Landy-Szalay histogram to", output_filename)
-    return output_filename #for plotting in the same pipeline!
+
+        # --- Save output using HDF5 ---
+
+        # Construct nested output directory structure
+        output_dir = os.path.join(cfg.paths.output_directory, simulation, str(redshift))
+
+        # Make sure it exists (this creates all intermediate subdirectories)
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Build the full file path
+        output_filename = os.path.join(
+            output_dir,
+            f"{cosmo.name}.hdf5"
+        )
+
+        print("Saving results to:", output_filename)
+
+
+        with h5py.File(output_filename, "w") as f:
+
+            # --- Unitless arrays / scalars ---
+            f.create_dataset("oversampling_factor", data=cfg.random_catalog.oversampling)
+            f.create_dataset("random_size", data=correlation.n_random)
+            f.create_dataset("ls_avg", data=correlation.ls_avg)
+            f.create_dataset("ls_std", data=correlation.ls_std)
+
+            # --- Arrays / scalars with units ---
+            f.create_dataset("slice_thickness", data=cosmo_real.delta_dr.value)
+            f["slice_thickness"].attrs["units"] = str(cosmo_real.delta_dr.units)
+
+            f.create_dataset("survey_density", data=correlation.survey_density.value)
+            f["survey_density"].attrs["units"] = str(correlation.survey_density.units)
+            
+            f.create_dataset("survey_area", data=correlation.survey_area.value)
+            f["survey_density"].attrs["units"] = str(correlation.survey_area.units)
+
+
+            f.create_dataset("s_bin_centers", data=correlation.s_bin_centers)
+            f["s_bin_centers"].attrs["units"] = str(u.Mpc)
+
+            f.create_dataset("mu_bin_centers", data=correlation.mu_bin_centers)
+            
+
+
+        print("Saved single-slice Landy-Szalay histogram to", output_filename)
+        filenames.append(output_filename)
+    return filenames #for plotting in the same pipeline!

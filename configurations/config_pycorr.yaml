@@ -2,10 +2,10 @@ paths:
   directory: /cosma8/data/dp004/flamingo/Runs/ #do not touch!
   soap_hbt_subpath: SOAP-HBT/halo_properties_00 #do not touch!
 
-  simulation: L1000N3600/HYDRO_FIDUCIAL #only thouch this part!
+  simulation: L1000N0900/HYDRO_FIDUCIAL #only thouch this part!
   redshift_file: output_list.txt
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [65] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  snapshot_number: [69] #for numbers below 10: fill in 06 or 07, not 6 and 7
   output_directory: results_angular_4 #full path if necessary
 
 slicing:
@@ -41,7 +41,26 @@ plotting:
   s_bins: 200
   s_min: 0  #Mpc
   s_max: 300 #Mpc  #actually 300 Mpc!!!
+
+#other settings
+  expected_bao_position: 150 #Mpc, to highlight in plots
+  bao_window: 20 #Mpc, window around the expected BAO position to highlight in plots
+  plot_bao: on #whether to plot the BAO position or not in the 2d correlation plots
+  
+  #if you want the plots, set to 'on', else 'off'
+  correlation_2d: on
+  variance_2d: on
+  correlation_1d: on
   
 
 statistics:
   n_patches: 100 #jackknife patches
+
+fiducial:
+  cosmology: planck18
+  #options:
+  #'planck18-only', 'planck18', 'planck15-only', 
+  #'planck15', 'planck13-only', 'planck13', 'WMAP9-only', 
+  #'WMAP9-ML', 'WMAP9', 'WMAP7-only', 'WMAP7-ML', 'WMAP7', 'WMAP5-only', 
+  #'WMAP5-ML', 'WMAP5', 'WMAP3-ML', 'WMAP3', 'WMAP1-ML', 'WMAP1', 'illustris', 'bolshoi',
+  # 'multidark-planck', 'millennium', 'EdS', 'powerlaw'

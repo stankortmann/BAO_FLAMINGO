@@ -5,6 +5,7 @@
 *.npz
 *.hdf5
 *.png
+*/old/
 
 
 # Packaging
