@@ -1,0 +1,67 @@
+paths:
+  directory: /cosma8/data/dp004/flamingo/Runs/ #do not touch!
+  soap_hbt_subpath: SOAP-HBT/halo_properties_00 #do not touch!
+  redshift_file: output_list.txt #do not touch!
+
+  #only thouch these parts below!!
+  simulation: L2800N5040/HYDRO_FIDUCIAL 
+  #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
+  snapshot_number: [60,64,68] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  output_directory: results_angular_4 #full path if necessary
+
+slicing:
+  redshift_bin_width: 0.2 #delta_z of the complete bin, will mark the shell volume
+  
+
+random_catalog:
+  seed: 12345 #random number, not very interesting to look at , We could later add None to recreate uncontrolled randoms.
+  oversampling: 20 #the oversampling factor of the randoms
+
+filters:
+  central_filter: off
+  stellar_mass_filter: on
+  stellar_mass_cutoff: 0
+
+  
+  luminosity_filter: on
+  survey: lrg #bgs or lrg
+
+  #bgs input, if survey=lrg we do not need any inputs
+  m_r_cutoff: 21 #apparent band magnitude for the observer
+
+  
+
+plotting:
+
+#--- mu ---
+  mu_bins: 40
+  mu_min: -1 #cosine 
+  mu_max: 1  #cosine
+
+#--- s ---
+  s_bins: 200
+  s_min: 0  #Mpc
+  s_max: 300 #Mpc  #actually 300 Mpc!!!
+
+#other settings
+  expected_bao_position: 150 #Mpc, to highlight in plots
+  bao_window: 20 #Mpc, window around the expected BAO position to highlight in plots
+  plot_bao: on #whether to plot the BAO position or not in the 2d correlation plots
+  
+  #if you want the plots, set to 'on', else 'off'
+  correlation_2d: on
+  variance_2d: on
+  correlation_1d: on
+  
+
+statistics:
+  n_patches: 100 #jackknife patches
+
+fiducial:
+  cosmology: illustris
+  #options:
+  #'planck18-only', 'planck18', 'planck15-only', 
+  #'planck15', 'planck13-only', 'planck13', 'WMAP9-only', 
+  #'WMAP9-ML', 'WMAP9', 'WMAP7-only', 'WMAP7-ML', 'WMAP7', 'WMAP5-only', 
+  #'WMAP5-ML', 'WMAP5', 'WMAP3-ML', 'WMAP3', 'WMAP1-ML', 'WMAP1', 'illustris', 'bolshoi',
+  # 'multidark-planck', 'millennium', 'EdS', 'powerlaw'

@@ -11,7 +11,8 @@ import baoflamingo.plotting_pycorr_new as plt_pycorr
 ############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############
 
 def make_path(results_dir, simulation, snapshot_num,
-              base="/cosma/home/do012/dc-kort1/BAO"):
+              base="/cosma/home/do012/dc-kort1/BAO",
+              cosmology="millennium"):
     """
     Create the full path for a snapshot file.
 
@@ -32,18 +33,19 @@ def make_path(results_dir, simulation, snapshot_num,
     Path
         A pathlib.Path object pointing to the constructed file
     """
-    snapshot_num = str(snapshot_num)
-    filename = f"single_slice_snapshot_{snapshot_num}.hdf5"
+    
+    filename = f"{snapshot_num}.hdf5"
 
-    return Path(base) / results_dir / simulation / filename
+    return Path(base) / results_dir / simulation / redshift / cosmology
 
 
 cfg=None
 data_filename = make_path(
-    results_dir="results_angular_4",
+    results_dir="results_illustris",
     simulation="L1000N3600/HYDRO_FIDUCIAL",
-    snapshot_num=65,
-    base="/cosma/home/do012/dc-kort1/BAO"
+    redshift="0.9",
+    base="/cosma/home/do012/dc-kort1/BAO",
+    cosmology="illustris"
 )
 data_plot = plt_pycorr.correlation_plotter(
     filename=data_filename,

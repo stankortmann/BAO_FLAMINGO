@@ -1,5 +1,6 @@
 import yaml
 import numpy as np
+import argparse
 
 # Our own modules
 import baoflamingo.data_structure_pycorr as ds
@@ -10,8 +11,18 @@ from baoflamingo.plotting_pycorr_new import correlation_plotter
 ############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############
 
 if __name__ == "__main__":
+
+      # --- Argument parser ---
+    parser = argparse.ArgumentParser(description="Run BAOflamingo PyCorr pipeline")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configurations/config_pycorr.yaml",
+        help="Path to the YAML configuration file"
+    )
+    args=parser.parse_args()
     # --- Load YAML config file ---
-    with open("configurations/config_pycorr.yaml", "r") as f:
+    with open(args.config, "r") as f:
         cfg_dict = yaml.safe_load(f)
 
     # Create config object
@@ -24,6 +35,8 @@ if __name__ == "__main__":
         statistics=ds.Statistics(**cfg_dict['statistics']),
         fiducial=ds.Fiducial(**cfg_dict['fiducial'])
     )
+
+
 
     # --- Handle multiple snapshot numbers ---
     snapshot_numbers = cfg.paths.snapshot_number

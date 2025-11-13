@@ -1,15 +1,16 @@
 paths:
   directory: /cosma8/data/dp004/flamingo/Runs/ #do not touch!
   soap_hbt_subpath: SOAP-HBT/halo_properties_00 #do not touch!
+  redshift_file: output_list.txt #do not touch!
 
-  simulation: L1000N0900/HYDRO_FIDUCIAL #only thouch this part!
-  redshift_file: output_list.txt
+  #only thouch these parts below!!
+  simulation: L1000N3600/HYDRO_FIDUCIAL 
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
   snapshot_number: [69] #for numbers below 10: fill in 06 or 07, not 6 and 7
   output_directory: results_angular_4 #full path if necessary
 
 slicing:
-  redshift_bin_width: 0.2 #delta_z of the complete bin, will mark the shell volume
+  redshift_bin_width: 0.1 #delta_z of the complete bin, will mark the shell volume
   
 
 random_catalog:

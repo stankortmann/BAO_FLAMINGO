@@ -28,8 +28,8 @@ warnings.filterwarnings(
 )
 
 # --- Memory and monitor ---
-
-def monitor_system(interval=120):
+#every 240 seconds print CPU and memory usage
+def monitor_system(interval=240):
     """
     Print CPU and memory usage every `interval` seconds.
     - CPU usage: percentage of total CPU
@@ -75,8 +75,9 @@ def run_pipeline_single(cfg):
     print("Snapshot redshift:", redshift)
     simulation_cosmology = metadata.cosmology
     box_size = metadata.boxsize[0]
-    print(box_size)
+    print(f"The size of the box is {box_size:.2f}")
     centre = np.array([box_size.value / 2] * 3)
+    safe_offset= 5*u.Mpc #away from the box edge to avoid boundary issues
     
     cosmo_real = cosmo_tools(
         box_size=box_size,
@@ -107,8 +108,19 @@ def run_pipeline_single(cfg):
         shift = np.random.uniform(-0.5*box_size.value, 0.5*box_size.value, size=3)
         #we have to do extra slicing with this one!
         observer = centre.copy()
-        #shift of the x value!
-        observer[0] += cosmo_real.center_bin.value
+        #x position so it is 'safe_offset' away from the 'wall' of the box
+        #and in the middle of the y and z directions
+        observer[0] = cosmo_real.outer_edge_bin.value + safe_offset.value
+
+        #testing if the partial slice is possible due to limitations of the box size
+        #in the x direction. This can be proven geometrically.
+        fail_safe =safe_offset+cosmo_real.delta_dr+\
+        (1-np.cos(cosmo_real.max_angle))*cosmo_real.inner_edge_bin
+        print(fail_safe)
+        if fail_safe> box_size:
+            print("No complete spherical slice is possible due to redshift bin width and max angle.")
+            #it has to exit the entire pipeline
+            exit()
         print("No complete spherical slice is possible")
 
 

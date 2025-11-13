@@ -38,7 +38,9 @@ class correlation_plotter:
         #colormesh scale, important and configured in yaml file
         self.mask_bao = (self.s > bao - bao_window) & (self.s < bao + bao_window)
         #this is a wide window only for the 1d correlation plot, hardcoded though
-        self.mask_1d_bao = (self.s > bao - 50) & (self.s < bao + 50)
+        bao_window_1d = 50*u.Mpc
+        self.mask_1d_bao = (self.s > bao - bao_window_1d) & (self.s < bao + bao_window_1d)
+        #plot the bao ridge spline if wanted in the 2d correlation plot
         self.bao_ridge = cfg.plotting.plot_bao
 
         #plotting if you want to plot the following statistics
