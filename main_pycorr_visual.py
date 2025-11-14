@@ -1,61 +1,85 @@
+import argparse
 import yaml
-import numpy as np
 from pathlib import Path
 
-# Our own modules
-import baoflamingo.data_structure_pycorr as ds
-from baoflamingo.pipeline_single_pycorr import run_pipeline_single
-import baoflamingo.plotting_pycorr_new as plt_pycorr
+# --- Our own modules ---
+from baoflamingo.data_structure_visual import Config, Paths, Plotting
+from baoflamingo.plotting_pycorr_new import correlation_plotter
 
 
-############-------ACTUAL RUNNING, DO NOT DELETE!!! -------#############
-
-def make_path(results_dir, simulation, snapshot_num,
-              base="/cosma/home/do012/dc-kort1/BAO",
-              cosmology="millennium"):
+# -------------------------------------------------------------------
+# Helper: build the full file path
+# -------------------------------------------------------------------
+def make_path(results_dir, simulation,  base, redshift, cosmology):
     """
-    Create the full path for a snapshot file.
+    Construct the full path to the HDF5 correlation file.
 
-    Parameters
-    ----------
-    results_dir : str
-        Directory like 'results_angular_4'
-    simulation : str
-        Simulation name like 'L1000N0900'
-    snapshot_num : int or str
-        Snapshot number, e.g. 63
-    base : str
-        Path to the BAO base directory
-   
-
-    Returns
-    -------
-    Path
-        A pathlib.Path object pointing to the constructed file
+    Example:
+        /base/results_dir/simulation/redshift/cosmology/correlation_results.hdf5
     """
+    filename = f"{cosmology}.hdf5"  # Change if your naming differs
+    path=Path(base) / results_dir / simulation / str(redshift) / filename
     
-    filename = f"{snapshot_num}.hdf5"
-
-    return Path(base) / results_dir / simulation / redshift / cosmology
+    return path
 
 
-cfg=None
-data_filename = make_path(
-    results_dir="results_illustris",
-    simulation="L1000N3600/HYDRO_FIDUCIAL",
-    redshift="0.9",
-    base="/cosma/home/do012/dc-kort1/BAO",
-    cosmology="illustris"
-)
-data_plot = plt_pycorr.correlation_plotter(
-    filename=data_filename,
-    mu_rebin=1,
-    s_rebin=1,
-    bao=150,bao_window=20, #in comoving Mpc  
-    plot_bao_ridge=True,
-    plot_2d_correlation=True,
-    plot_2d_variance=True,
-    plot_1d_projection=True
+# -------------------------------------------------------------------
+# Helper: load YAML config and convert to dataclasses
+# -------------------------------------------------------------------
+def load_config(config_path: str) -> Config:
+    """
+    Load a YAML configuration file and unpack into dataclasses.
+    """
+    with open(config_path, "r") as f:
+        cfg_dict = yaml.safe_load(f)
+
+    paths_cfg = Paths(**cfg_dict["paths"])
+    plotting_cfg = Plotting(**cfg_dict["plotting"])
+    return Config(paths=paths_cfg, plotting=plotting_cfg)
+
+
+# -------------------------------------------------------------------
+# Main execution
+# -------------------------------------------------------------------
+def main():
+    # --- Argument parser ---
+    parser = argparse.ArgumentParser(description="Plot BAOflamingo PyCorr correlation outputs")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configurations/config_visual.yaml",
+        help="Path to the plotting YAML configuration file"
     )
+    args = parser.parse_args()
+
+    # --- Load configuration file ---
+    cfg = load_config(args.config)
+
+    # --- Build full HDF5 path ---
+    for redshift in cfg.paths.redshift if isinstance(cfg.paths.redshift, list) else [cfg.paths.redshift]:
+        for cosmology in cfg.paths.cosmology if isinstance(cfg.paths.cosmology, list) else [cfg.paths.cosmology]:
+            
+            data_filename = make_path(
+                results_dir=cfg.paths.results_dir,
+                simulation=cfg.paths.simulation,
+                base=cfg.paths.base,
+                redshift=redshift,
+                cosmology=cosmology
+            )
+
+            print(f"Loading correlation data from: {data_filename}")
+
+            # --- Run plotting pipeline ---
+            data_plot = correlation_plotter(
+                filename=data_filename,
+                cfg=cfg,
+                mu_rebin=cfg.plotting.mu_rebin,
+                s_rebin=cfg.plotting.s_rebin
+            )
+
+            print("Plotting completed successfully.")
 
 
+# -------------------------------------------------------------------
+if __name__ == "__main__":
+    main()

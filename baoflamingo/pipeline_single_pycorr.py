@@ -195,20 +195,25 @@ def run_pipeline_single(cfg):
     This is set in the config file.
     """
     from colossus.cosmology import cosmology as cosmo_fiducial
-    #setting the cosmology to the one provided in the config file
-    cosmo_fiducial.setCosmology(cfg.fiducial.cosmology)
-
-    cosmo_fid = cosmo_tools(
-        box_size=box_size,
-        constants=cosmo_fiducial.current_cosmo,
-        redshift=redshift,
-        redshift_bin_width=cfg.slicing.redshift_bin_width #delta_z
-        )
-
 
     #might add more cosmologies later on, so we do a list
-    cosmo_list = [cosmo_real,cosmo_fid]
+    cosmo_list = [cosmo_real]
     filenames=[]
+    #setting the cosmology to the one provided in the config file, can be a list
+    cosmo_names = cfg.fiducial.cosmology
+    for name in cosmo_names if isinstance(cosmo_names, list) else [cosmo_names]:
+        cosmo_fiducial.setCosmology(name)
+
+        cosmo_new = cosmo_tools(
+            box_size=box_size,
+            constants=cosmo_fiducial.current_cosmo,
+            redshift=redshift,
+            redshift_bin_width=cfg.slicing.redshift_bin_width #delta_z
+            )
+        cosmo_list.append(cosmo_new)
+
+
+    
 
 
     # --- Correlation ---
@@ -263,7 +268,10 @@ def run_pipeline_single(cfg):
             f["survey_density"].attrs["units"] = str(correlation.survey_density.units)
             
             f.create_dataset("survey_area", data=correlation.survey_area.value)
-            f["survey_density"].attrs["units"] = str(correlation.survey_area.units)
+            f["survey_area"].attrs["units"] = str(correlation.survey_area.units)
+            #only save the real cosmology's bao distance!
+            f.create_dataset("bao_distance", data=cosmo_real.bao_distance.value)
+            f["bao_distance"].attrs["units"] = str(cosmo_real.bao_distance.units)
 
 
             f.create_dataset("s_bin_centers", data=correlation.s_bin_centers)

@@ -6,11 +6,11 @@ paths:
   #only thouch these parts below!!
   simulation: L1000N3600/HYDRO_FIDUCIAL 
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [60,66] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: results_millennium #full path if necessary
+  snapshot_number: [58,60,62,64,66,68] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  output_directory: results_millennium_2 #full path if necessary
 
 slicing:
-  redshift_bin_width: 0.2 #delta_z of the complete bin, will mark the shell volume
+  redshift_bin_width: 0.3 #delta_z of the complete bin, will mark the shell volume
   
 
 random_catalog:

@@ -4,13 +4,13 @@ paths:
   redshift_file: output_list.txt #do not touch!
 
   #only thouch these parts below!!
-  simulation: L2800N5040/HYDRO_FIDUCIAL 
+  simulation: L1000N1800/HYDRO_LOW_SIGMA8
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [60,64,68] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: results_angular_4 #full path if necessary
+  snapshot_number: [56,60,64,68] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  output_directory: results_low_sigma8 #full path if necessary
 
 slicing:
-  redshift_bin_width: 0.2 #delta_z of the complete bin, will mark the shell volume
+  redshift_bin_width: 0.3 #delta_z of the complete bin, will mark the shell volume
   
 
 random_catalog:
@@ -41,7 +41,7 @@ plotting:
 #--- s ---
   s_bins: 200
   s_min: 0  #Mpc
-  s_max: 300 #Mpc  #actually 300 Mpc!!!
+  s_max: 300 #Mpc 
 
 #other settings
   expected_bao_position: 150 #Mpc, to highlight in plots
@@ -51,6 +51,7 @@ plotting:
   #if you want the plots, set to 'on', else 'off'
   correlation_2d: on
   variance_2d: on
+  #for either mu or s slices!
   correlation_1d: on
   
 
@@ -58,7 +59,7 @@ statistics:
   n_patches: 100 #jackknife patches
 
 fiducial:
-  cosmology: illustris
+  cosmology: [millennium, illustris,planck18,bolshoi]
   #options:
   #'planck18-only', 'planck18', 'planck15-only', 
   #'planck15', 'planck13-only', 'planck13', 'WMAP9-only', 
