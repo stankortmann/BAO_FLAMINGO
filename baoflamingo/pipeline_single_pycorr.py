@@ -259,6 +259,7 @@ def run_pipeline_single(cfg):
             f.create_dataset("random_size", data=correlation.n_random)
             f.create_dataset("ls_avg", data=correlation.ls_avg)
             f.create_dataset("ls_std", data=correlation.ls_std)
+            f.create_dataset("effective_redshift", data=correlation.effective_redshift)
 
             # --- Arrays / scalars with units ---
             f.create_dataset("slice_thickness", data=cosmo_real.delta_dr.value)
@@ -269,10 +270,22 @@ def run_pipeline_single(cfg):
             
             f.create_dataset("survey_area", data=correlation.survey_area.value)
             f["survey_area"].attrs["units"] = str(correlation.survey_area.units)
+            
             #only save the real cosmology's bao distance!
-            f.create_dataset("bao_distance", data=cosmo_real.bao_distance.value)
-            f["bao_distance"].attrs["units"] = str(cosmo_real.bao_distance.units)
+            f.create_dataset("BAO_distance", data=cosmo_real.bao_distance.value)
+            f["BAO_distance"].attrs["units"] = str(cosmo_real.bao_distance.units)
 
+
+            f.create_dataset("effective_radius", data=correlation.effective_radius.value)
+            f["effective_radius"].attrs["units"] = str(correlation.effective_radius.units)
+
+            f.create_dataset("effective_H_z", data=correlation.effective_H_z.value)
+            f["effective_H_z"].attrs["units"] = str(correlation.effective_H_z.units)
+
+            f.create_dataset("effective_D_a", data=correlation.effective_D_a.value)
+            f["effective_D_a"].attrs["units"] = str(correlation.effective_D_a.units)
+
+            #bin settings
 
             f.create_dataset("s_bin_centers", data=correlation.s_bin_centers)
             f["s_bin_centers"].attrs["units"] = str(u.Mpc)

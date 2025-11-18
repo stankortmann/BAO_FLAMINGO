@@ -131,6 +131,8 @@ class correlation_tools_pycorr:
         #this ultimately decides the tension at that redshift
         self.effective_redshift = self.cosmo.effective_redshift(random_z)
         self.effective_radius = self.cosmo.effective_comoving_distance(random_z)
+        self.effective_H_z=self.cosmo.effective_hubble_constant(random_z)
+        self.effective_D_a=self.cosmo.effective_angular_diameter_distance(random_z)
 
 
 
@@ -150,6 +152,13 @@ class correlation_tools_pycorr:
         # ---- Prepare data positions (cartesian) using a  cosmology ----
         
         # data and randoms are in the form (N,(theta,phi,z)) and going to ((ra,dec,r),N)
+
+        """
+        print(f"maximum range of theta in data: {np.max(sph_coords[:,0])}, minimum: {np.min(sph_coords[:,0])} ")
+        print(f"maximum range of theta in randoms: {np.max(self.random[:,0])}, minimum: {np.min(self.random[:,0])}")
+        print(f"maximum range of phi in data: {np.max(sph_coords[:,1])}, minimum: {np.min(sph_coords[:,1])}")
+        print(f"maximum range of phi in randoms: {np.max(self.random[:,1])}, minimum: {np.min(self.random[:,1])}")
+        """
         pos_data,pos_units = coordinate_tools.theta_phi_z_to_ra_dec_r(sph_coords, cosmo)# shape (3,N)
         pos_random,__ =coordinate_tools.theta_phi_z_to_ra_dec_r(self.random, cosmo)# shape (3,N)
         
@@ -178,15 +187,18 @@ class correlation_tools_pycorr:
   
         ls = TwoPointCorrelationFunction(
             mode='smu',
-            edges=self.edges,
+            #data
             data_positions1=pos_data,
             data_samples1=patch_labels_data,
             data_weights1=weights_data,
+            #randoms
             randoms_positions1=pos_random,
             randoms_samples1=patch_labels_random,
             randoms_weights1=weights_random,
+            #settings
             bin_type='lin',          # linear bins -> faster
             position_type='rdd',     # positions are provided as (3,N)
+            edges=self.edges,
             #weight_type=None, #this is acting weird
             los='midpoint',
             estimator='landyszalay',
@@ -203,7 +215,7 @@ class correlation_tools_pycorr:
 
         # Count total number of NaNs
         num_nans = np.sum(nan_mask)
-        print("Number of NaNs:", num_nans)
+        print("Number of bins that are empty:", num_nans)
         
         self.ls_avg= ls_avg
         self.ls_std= ls_std

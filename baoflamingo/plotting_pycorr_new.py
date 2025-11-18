@@ -4,6 +4,8 @@ import unyt as u
 import h5py
 from scipy.interpolate import UnivariateSpline
 
+from baoflamingo.fitting import gaussian_data
+
 class correlation_plotter:
     """
     Class to handle 2D correlation ξ(s, μ) plotting, variance plotting, 
@@ -30,16 +32,15 @@ class correlation_plotter:
         #rebinning if needed
         #subject to be introduced in the cfg file, for now set to 1 (no rebinning)
         self._rebin_all(s_rebin=s_rebin, mu_rebin=mu_rebin)
-
+        
         #bao settings
-        bao = cfg.plotting.expected_bao_position*u.Mpc
-        bao_window = cfg.plotting.bao_window*u.Mpc
+        BAO_window = cfg.plotting.bao_window*u.Mpc
         #window around the expected BAO position for plotting, determines the 
         #colormesh scale, important and configured in yaml file
-        self.mask_bao = (self.s > bao - bao_window) & (self.s < bao + bao_window)
+        self.mask_BAO = (self.s > self.BAO - 0.5*BAO_window) & (self.s < self.BAO + 0.5*BAO_window)
         #this is a wide window only for the 1d correlation plot, hardcoded though
-        bao_window_1d = 80*u.Mpc
-        self.mask_s_1d_bao = (self.s > bao - bao_window_1d) & (self.s < bao + bao_window_1d)
+        BAO_window_1d = 80*u.Mpc
+        self.mask_s_1d_BAO = (self.s > self.BAO - 0.5*BAO_window_1d) & (self.s < self.BAO + 0.5*BAO_window_1d)
         #plot the bao ridge spline if wanted in the 2d correlation plot
         self.bao_ridge = cfg.plotting.plot_bao
 
@@ -64,6 +65,10 @@ class correlation_plotter:
             self.mu = load_dataset("mu_bin_centers")
             self.xi = load_dataset("ls_avg")
             self.ls_std = load_dataset("ls_std") if "ls_std" in f else np.ones_like(self.xi)
+            self.BAO = load_dataset("BAO_distance")
+            self.H_z= load_dataset("effective_H_z")
+            self.D_a= load_dataset("effective_D_a")
+            print(f"H_z={self.H_z}, D_a={self.D_a}, BAO position={self.BAO}")
 
             #will have to be implemented later on when this is passed on in the .hdf5 file!!!!
             #self.bao_position = load_dataset("bao_position")
@@ -109,7 +114,7 @@ class correlation_plotter:
         
 
         plt.figure(figsize=(8,6))
-        vlim = np.nanmax(np.abs(self.xi[self.mask_bao, :]))
+        vlim = np.nanmax(np.abs(self.xi[self.mask_BAO, :]))
         im = plt.pcolormesh(self.s, self.mu, self.xi.T, shading="auto", cmap="seismic",
                             vmin=-vlim, vmax=vlim)
         plt.colorbar(im, label="ξ(s, μ)")
@@ -120,10 +125,10 @@ class correlation_plotter:
         # BAO ridge
         if self.bao_ridge:
             
-            s_bao_max = np.array([self.s[self.mask_bao][np.nanargmax(self.xi[self.mask_bao, i])] for i in range(len(self.mu))])
+            s_bao_max = np.array([self.s[self.mask_BAO][np.nanargmax(self.xi[self.mask_BAO, i])] for i in range(len(self.mu))])
 
             # weights from ls_std
-            var_ridge = np.nanmean(self.ls_std[self.mask_bao, :]**2, axis=0)
+            var_ridge = np.nanmean(self.ls_std[self.mask_BAO, :]**2, axis=0)
             weights = 1.0 / var_ridge
 
             spline = UnivariateSpline(self.mu, s_bao_max, w=weights, s=2000)
@@ -137,6 +142,7 @@ class correlation_plotter:
         filename_plot=filename_plot.replace('.hdf5','_2d_correlation.png')
         plt.tight_layout()
         plt.savefig(filename_plot, dpi=300)
+        plt.close()
         print(f"2D correlation plot saved to {filename_plot}")
         
 
@@ -148,8 +154,8 @@ class correlation_plotter:
         plt.figure(figsize=(8,6))
         im = plt.pcolormesh(self.s, self.mu, self.var_xi.T,
              shading="auto", cmap="viridis",
-             vmin=np.nanmin(self.var_xi[self.mask_bao, :]),
-             vmax=np.nanmax(self.var_xi[self.mask_bao, :]))
+             vmin=np.nanmin(self.var_xi[self.mask_BAO, :]),
+             vmax=np.nanmax(self.var_xi[self.mask_BAO, :]))
         plt.colorbar(im, label="Var[ξ(s, μ)]")
         plt.xlabel(f"s [{self.s.units}]")
         plt.ylabel("μ")
@@ -159,37 +165,73 @@ class correlation_plotter:
         filename_plot=filename_plot.replace('.hdf5','_2d_covariance.png')
         plt.tight_layout()
         plt.savefig(filename_plot, dpi=300)
+        plt.close()
         print(f"2D covariance plot saved to {filename_plot}")
 
     def _plot_s_1d_correlation(self):
         """Average ξ(s, μ) over μ and plot 1D correlation."""
 
         xi_mean = np.average(self.xi,weights=1/self.var_xi, axis=1)
-        s_plot = self.s[self.mask_s_1d_bao] 
-        xi_plot = xi_mean[self.mask_s_1d_bao] 
-
+        std_mean=np.sqrt(1/np.sum(1/self.var_xi, axis=1))
+        s_plot = self.s[self.mask_BAO] 
+        xi_plot = xi_mean[self.mask_BAO]
+        std_plot=std_mean[self.mask_BAO] 
+        
+        #gaussian fitting for the 1d correlation of the bao signal
+        gauss_fit,mu,sigma = gaussian_data(  distances=s_plot.value, 
+                                    correlation=xi_plot,
+                                    yerror=std_plot, 
+                                    initial_amplitude=0.005, 
+                                    initial_mean=150, 
+                                    initial_stddev=5)
+        
         plt.figure(figsize=(8,6))
-        plt.plot(s_plot, xi_plot)
+        #plot expected bao position with a vline
+        plt.axvline(self.BAO.value, color='orange',
+         linestyle='--', label=f'Expected BAO Position={self.BAO.value:.1f} {self.BAO.units}')
+        #errorbar plot of the data
+        plt.errorbar(s_plot, xi_plot,
+        yerr=std_plot,color='green', label='Data',marker='x',linestyle='None',capsize=3)
+        #gaussian fit plot
+        plt.scatter(s_plot, gauss_fit, color='red', 
+        label=f'Gaussian Fit, μ={mu[0]:.2f} +/- {mu[1]:.2f} Mpc, σ={sigma[0]:.2f} +/- {sigma[1]:.2f}Mpc')
+        
         plt.xlabel(f"s [{self.s.units}]")
         plt.ylabel("Σμ ξ(s, μ)")
         plt.title("1D correlation of ξ(s, μ) --> ξ(s)")
+        plt.legend()
         #plotting
         filename_plot=str(self.filename)
         filename_plot=filename_plot.replace('.hdf5','_s_1d_correlation.png')
         plt.tight_layout()
         plt.savefig(filename_plot, dpi=300)
+        plt.close()
+
         print(f"1D correlation plot saved to {filename_plot}")
 
     def _plot_mu_1d_correlation(self):
         """Average ξ(s, μ) over μ and plot 1D correlation."""
 
-        xi_mean = np.average(self.xi[self.mask_s_1d_bao],weights=1/self.var_xi[self.mask_s_1d_bao],  axis=0)
+        # we will average over s in the BAO window with the correlation values as weights
+        window_xi = np.maximum(self.xi[self.mask_BAO],0)#clipped so negative values do not interfere
+        window_s=self.s[self.mask_BAO]
+        window_s_2d = np.tile(window_s[:, None], (1, window_xi.shape[1]))  # shape (Ns_window, Nmu_window)
+       
+
+        # Compute delta s for each mu in the window around BAO
+        average_s=np.average(window_s_2d, axis=0, weights=window_xi)
+        delta_s_mu = self.BAO-average_s
+
+      
+
+        #xi_mean = np.average(self.xi[self.mask_s_1d_BAO],weights=1/self.var_xi[self.mask_s_1d_BAO],  axis=0)
         #might introduce a mask here as well, but for mu it's not that necessary at the moment
         mu_plot = self.mu 
-        xi_plot = xi_mean
-
+        #xi_plot = xi_mean
+        print(f"The average of delta_s over mu is {np.mean(delta_s_mu)}")
+        positive_mu= (mu_plot >=0)
         plt.figure(figsize=(8,6))
-        plt.plot(mu_plot, xi_plot)
+        plt.scatter(mu_plot[positive_mu], delta_s_mu[positive_mu])
         plt.xlabel("μ")
         plt.ylabel("Σs ξ(s, μ)")
         plt.title("1D correlation of ξ(s, μ) --> ξ(μ)")
@@ -198,6 +240,7 @@ class correlation_plotter:
         filename_plot=filename_plot.replace('.hdf5','_mu_1d_correlation.png')
         plt.tight_layout()
         plt.savefig(filename_plot, dpi=300)
+        plt.close()
         print(f"1D correlation plot saved to {filename_plot}")
        
 

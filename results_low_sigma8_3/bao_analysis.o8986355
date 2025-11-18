@@ -1,0 +1,352 @@
+====
+Starting job 8986355 at Tue 18 Nov 13:03:10 GMT 2025 for user dc-kort1.
+Running on nodes: mad02
+====
+Running on host: mad02.pri.cosma.local
+Start time: Tue 18 Nov 13:03:10 GMT 2025
+Python 3.12.4
+Found snapshot numbers: [56, 60, 64]
+
+=== Running for snapshot 56 ===
+[SYSTEM MONITOR] CPU: 33.3% | Memory: 0.258 GB
+Snapshot 56 loaded
+Snapshot redshift: 1.05
+The size of the box is 1000.00 Mpc
+Cosmology set up
+Centre radius is 3504.4948064927303 Mpc
+Thickness of slice is: 725.1609022565463 Mpc
+756.6178300417198 Mpc
+No complete spherical slice is possible
+Filters set up
+Stellar mass filter applied
+Radial filter applied
+[SYSTEM MONITOR] CPU: 23.8% | Memory: 1.631 GB
+Pass percentage after luminosity filter of galaxies with stellar mass: 2.78%
+Luminosity filter applied
+Data size after filtering: 10578
+[SYSTEM MONITOR] CPU: 23.4% | Memory: 1.731 GB
+maximum range of theta in data: 1.7009796822447816, minimum: 1.4406240953625784 
+maximum range of theta in randoms: 1.7009864796894338, minimum: 1.4406051785151675
+maximum range of phi in data: 0.13014531142029415, minimum: -0.13018245649848756
+maximum range of phi in randoms: 0.13018941690013622, minimum: -0.13019146324642028
+Number of bins that are empty: 0
+Survey density : 1462.2574474788707 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/w0waCDM.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/w0waCDM.hdf5
+maximum range of theta in data: 1.7009796822447816, minimum: 1.4406240953625784 
+maximum range of theta in randoms: 1.704991502521287, minimum: 1.4366001246972282
+maximum range of phi in data: 0.13014531142029415, minimum: -0.13018245649848756
+maximum range of phi in randoms: 0.13419441758801962, minimum: -0.1341965268857975
+Number of bins that are empty: 0
+Survey density : 1335.3215929620683 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/millennium.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/millennium.hdf5
+maximum range of theta in data: 1.7009796822447816, minimum: 1.4406240953625784 
+maximum range of theta in randoms: 1.7023205299399555, minimum: 1.4392711179470166
+maximum range of phi in data: 0.13014531142029415, minimum: -0.13018245649848756
+maximum range of phi in randoms: 0.13152345976964458, minimum: -0.13152552708471194
+[SYSTEM MONITOR] CPU: 22.3% | Memory: 1.851 GB
+Number of bins that are empty: 0
+Survey density : 1418.2534653407774 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/illustris.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/illustris.hdf5
+maximum range of theta in data: 1.7009796822447816, minimum: 1.4406240953625784 
+maximum range of theta in randoms: 1.700531649746104, minimum: 1.4410600119753554
+maximum range of phi in data: 0.13014531142029415, minimum: -0.13018245649848756
+maximum range of phi in randoms: 0.12973458947440725, minimum: -0.1297366286716124
+Number of bins that are empty: 0
+Survey density : 1477.6761437582022 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/planck18.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/planck18.hdf5
+maximum range of theta in data: 1.7009796822447816, minimum: 1.4406240953625784 
+maximum range of theta in randoms: 1.701328222481933, minimum: 1.4402634330799526
+maximum range of phi in data: 0.13014531142029415, minimum: -0.13018245649848756
+maximum range of phi in randoms: 0.13053115780137647, minimum: -0.13053320951922018
+[SYSTEM MONITOR] CPU: 23.0% | Memory: 1.852 GB
+Number of bins that are empty: 0
+Survey density : 1450.813348015505 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/bolshoi.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/bolshoi.hdf5
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/w0waCDM.hdf5...
+H_z=123.0617300161778 km/(Mpc*s), D_a=1703.7789427131831 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/w0waCDM_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/w0waCDM_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/w0waCDM_s_1d_correlation.png
+The average of delta_s over mu is 0.2048038599764908 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/w0waCDM_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/millennium.hdf5...
+H_z=123.3211933252079 km/(Mpc*s), D_a=1647.4626838216784 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/millennium_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/millennium_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/millennium_s_1d_correlation.png
+The average of delta_s over mu is -0.4782522055352871 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/millennium_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/illustris.hdf5...
+H_z=122.37076115698866 km/(Mpc*s), D_a=1683.3199464385787 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/illustris_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/illustris_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/illustris_s_1d_correlation.png
+The average of delta_s over mu is 0.5215314411740849 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/illustris_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/planck18.hdf5...
+H_z=123.04309310700698 km/(Mpc*s), D_a=1710.413382705879 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/planck18_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/planck18_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/planck18_s_1d_correlation.png
+The average of delta_s over mu is 0.8225715545212893 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/planck18_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/bolshoi.hdf5...
+H_z=121.28710681727263 km/(Mpc*s), D_a=1695.7534344486305 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/bolshoi_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/bolshoi_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/bolshoi_s_1d_correlation.png
+The average of delta_s over mu is -0.4543035568192096 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/1.05/bolshoi_mu_1d_correlation.png
+
+=== Running for snapshot 60 ===
+[SYSTEM MONITOR] CPU: 27.8% | Memory: 0.579 GB
+Snapshot 60 loaded
+Snapshot redshift: 0.85
+The size of the box is 1000.00 Mpc
+Cosmology set up
+Centre radius is 2992.4962283663062 Mpc
+Thickness of slice is: 815.5223119109933 Mpc
+848.7247821659593 Mpc
+No complete spherical slice is possible
+Filters set up
+Stellar mass filter applied
+Radial filter applied
+[SYSTEM MONITOR] CPU: 21.3% | Memory: 1.756 GB
+[SYSTEM MONITOR] CPU: 21.3% | Memory: 1.756 GB
+Pass percentage after luminosity filter of galaxies with stellar mass: 5.06%
+Luminosity filter applied
+Data size after filtering: 24299
+[SYSTEM MONITOR] CPU: 20.6% | Memory: 1.807 GB
+[SYSTEM MONITOR] CPU: 20.5% | Memory: 1.828 GB
+maximum range of theta in data: 1.7191703916118881, minimum: 1.4224298973192064 
+maximum range of theta in randoms: 1.719178768685121, minimum: 1.4224142441985679
+maximum range of phi in data: 0.14838072350848905, minimum: -0.14837356985300484
+maximum range of phi in randoms: 0.1483824724176229, minimum: -0.1483817319824959
+[SYSTEM MONITOR] CPU: 19.2% | Memory: 1.913 GB
+[SYSTEM MONITOR] CPU: 19.1% | Memory: 1.913 GB
+Number of bins that are empty: 0
+Survey density : 2269.8236648299057 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/w0waCDM.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/w0waCDM.hdf5
+maximum range of theta in data: 1.7191703916118881, minimum: 1.4224298973192064 
+maximum range of theta in randoms: 1.7244096316886353, minimum: 1.4171833940591065
+maximum range of phi in data: 0.14838072350848905, minimum: -0.14837356985300484
+maximum range of phi in randoms: 0.15361333652594442, minimum: -0.15361256998857328
+[SYSTEM MONITOR] CPU: 17.7% | Memory: 1.879 GB
+[SYSTEM MONITOR] CPU: 17.7% | Memory: 1.879 GB
+Number of bins that are empty: 0
+Survey density : 2046.02226506907 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/millennium.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/millennium.hdf5
+maximum range of theta in data: 1.7191703916118881, minimum: 1.4224298973192064 
+maximum range of theta in randoms: 1.7210608536879664, minimum: 1.4205321638219048
+maximum range of phi in data: 0.14838072350848905, minimum: -0.14837356985300484
+maximum range of phi in randoms: 0.15026455781764173, minimum: -0.15026380799082506
+[SYSTEM MONITOR] CPU: 16.5% | Memory: 1.923 GB
+[SYSTEM MONITOR] CPU: 16.5% | Memory: 1.880 GB
+Number of bins that are empty: 0
+Survey density : 2185.700270597243 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/illustris.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/illustris.hdf5
+maximum range of theta in data: 1.7191703916118881, minimum: 1.4224298973192064 
+maximum range of theta in randoms: 1.7185856361046579, minimum: 1.4230073753216466
+maximum range of phi in data: 0.14838072350848905, minimum: -0.14837356985300484
+maximum range of phi in randoms: 0.14778933971207014, minimum: -0.14778860223670173
+[SYSTEM MONITOR] CPU: 15.8% | Memory: 1.923 GB
+[SYSTEM MONITOR] CPU: 15.8% | Memory: 1.923 GB
+Number of bins that are empty: 0
+Survey density : 2297.228749629096 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/planck18.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/planck18.hdf5
+maximum range of theta in data: 1.7191703916118881, minimum: 1.4224298973192064 
+maximum range of theta in randoms: 1.7199564692654141, minimum: 1.4216365455295525
+maximum range of phi in data: 0.14838072350848905, minimum: -0.14837356985300484
+maximum range of phi in randoms: 0.14916017316198704, minimum: -0.1491594288460988
+[SYSTEM MONITOR] CPU: 14.8% | Memory: 1.923 GB
+[SYSTEM MONITOR] CPU: 14.6% | Memory: 1.923 GB
+Number of bins that are empty: 0
+Survey density : 2234.547908633832 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/bolshoi.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/bolshoi.hdf5
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/w0waCDM.hdf5...
+H_z=110.10955503227001 km/(Mpc*s), D_a=1614.4206593912602 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/w0waCDM_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/w0waCDM_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/w0waCDM_s_1d_correlation.png
+The average of delta_s over mu is 1.1956340034515023 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/w0waCDM_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/millennium.hdf5...
+H_z=111.19170175401507 km/(Mpc*s), D_a=1553.8773833479 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/millennium_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/millennium_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/millennium_s_1d_correlation.png
+The average of delta_s over mu is 1.1104889480534723 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/millennium_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/illustris.hdf5...
+H_z=109.95440227943278 km/(Mpc*s), D_a=1590.9225194655714 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/illustris_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/illustris_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/illustris_s_1d_correlation.png
+The average of delta_s over mu is 1.2908009924874506 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/illustris_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/planck18.hdf5...
+H_z=109.99380106336677 km/(Mpc*s), D_a=1621.5783124775605 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/planck18_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/planck18_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/planck18_s_1d_correlation.png
+The average of delta_s over mu is 0.5571099975408089 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/planck18_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/bolshoi.hdf5...
+H_z=109.02190651258161 km/(Mpc*s), D_a=1602.3129220824658 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/bolshoi_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/bolshoi_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/bolshoi_s_1d_correlation.png
+The average of delta_s over mu is 1.3974182582004517 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.85/bolshoi_mu_1d_correlation.png
+
+=== Running for snapshot 64 ===
+[SYSTEM MONITOR] CPU: 14.3% | Memory: 0.555 GB
+[SYSTEM MONITOR] CPU: 12.4% | Memory: 0.555 GB
+[SYSTEM MONITOR] CPU: 12.3% | Memory: 0.555 GB
+Snapshot 64 loaded
+Snapshot redshift: 0.65
+The size of the box is 1000.00 Mpc
+Cosmology set up
+Centre radius is 2415.8108425056016 Mpc
+Thickness of slice is: 919.3190397347462 Mpc
+954.2362845768604 Mpc
+No complete spherical slice is possible
+Filters set up
+Stellar mass filter applied
+Radial filter applied
+[SYSTEM MONITOR] CPU: 11.2% | Memory: 1.729 GB
+[SYSTEM MONITOR] CPU: 11.2% | Memory: 1.729 GB
+[SYSTEM MONITOR] CPU: 11.2% | Memory: 1.729 GB
+Pass percentage after luminosity filter of galaxies with stellar mass: 7.51%
+Luminosity filter applied
+Data size after filtering: 43142
+[SYSTEM MONITOR] CPU: 11.6% | Memory: 1.786 GB
+[SYSTEM MONITOR] CPU: 11.6% | Memory: 1.787 GB
+[SYSTEM MONITOR] CPU: 11.6% | Memory: 1.807 GB
+maximum range of theta in data: 1.7468404473912116, minimum: 1.3947442955639857 
+maximum range of theta in randoms: 1.746851350647188, minimum: 1.394741266800956
+maximum range of phi in data: 0.17605217584328894, minimum: -0.17605240539826283
+maximum range of phi in randoms: 0.1760549411657909, minimum: -0.17605507338020573
+[SYSTEM MONITOR] CPU: 11.4% | Memory: 1.924 GB
+[SYSTEM MONITOR] CPU: 11.5% | Memory: 1.924 GB
+[SYSTEM MONITOR] CPU: 11.5% | Memory: 1.924 GB
+[SYSTEM MONITOR] CPU: 10.5% | Memory: 1.924 GB
+[SYSTEM MONITOR] CPU: 10.2% | Memory: 1.924 GB
+[SYSTEM MONITOR] CPU: 10.1% | Memory: 1.924 GB
+[SYSTEM MONITOR] CPU: 9.4% | Memory: 1.924 GB
+[SYSTEM MONITOR] CPU: 9.3% | Memory: 1.924 GB
+Number of bins that are empty: 0
+Survey density : 2414.522935866502 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/w0waCDM.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/w0waCDM.hdf5
+maximum range of theta in data: 1.7468404473912116, minimum: 1.3947442955639857 
+maximum range of theta in randoms: 1.7540095673592504, minimum: 1.387583048586663
+maximum range of phi in data: 0.17605217584328894, minimum: -0.17605240539826283
+maximum range of phi in randoms: 0.18321315457193835, minimum: -0.18321329216205567
+[SYSTEM MONITOR] CPU: 9.2% | Memory: 1.853 GB
+[SYSTEM MONITOR] CPU: 9.0% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 8.9% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 8.9% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 8.6% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 8.6% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 8.6% | Memory: 1.943 GB
+Number of bins that are empty: 0
+Survey density : 2142.8864420150585 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/millennium.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/millennium.hdf5
+maximum range of theta in data: 1.7468404473912116, minimum: 1.3947442955639857 
+maximum range of theta in randoms: 1.7496015572655483, minimum: 1.3919910596058958
+maximum range of phi in data: 0.17605217584328894, minimum: -0.17605240539826283
+maximum range of phi in randoms: 0.17880514651322044, minimum: -0.178805280792995
+[SYSTEM MONITOR] CPU: 8.4% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 8.3% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 8.3% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 8.1% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 8.0% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 8.0% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 7.3% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 7.2% | Memory: 1.944 GB
+[SYSTEM MONITOR] CPU: 7.2% | Memory: 1.944 GB
+Number of bins that are empty: 0
+Survey density : 2305.0018862359757 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/illustris.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/illustris.hdf5
+maximum range of theta in data: 1.7468404473912116, minimum: 1.3947442955639857 
+maximum range of theta in randoms: 1.7460413299291972, minimum: 1.3955512876886949
+maximum range of phi in data: 0.17605217584328894, minimum: -0.17605240539826283
+maximum range of phi in randoms: 0.17524492082231324, minimum: -0.17524505242841584
+[SYSTEM MONITOR] CPU: 7.0% | Memory: 1.978 GB
+[SYSTEM MONITOR] CPU: 6.9% | Memory: 1.930 GB
+[SYSTEM MONITOR] CPU: 6.9% | Memory: 1.930 GB
+[SYSTEM MONITOR] CPU: 6.0% | Memory: 1.930 GB
+[SYSTEM MONITOR] CPU: 5.9% | Memory: 1.930 GB
+[SYSTEM MONITOR] CPU: 6.0% | Memory: 1.930 GB
+Number of bins that are empty: 0
+Survey density : 2448.101208088685 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/planck18.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/planck18.hdf5
+maximum range of theta in data: 1.7468404473912116, minimum: 1.3947442955639857 
+maximum range of theta in randoms: 1.7483274120917072, minimum: 1.3932652050469876
+maximum range of phi in data: 0.17605217584328894, minimum: -0.17605240539826283
+maximum range of phi in randoms: 0.17753100192806853, minimum: -0.17753113525098113
+[SYSTEM MONITOR] CPU: 6.2% | Memory: 1.980 GB
+[SYSTEM MONITOR] CPU: 6.2% | Memory: 1.980 GB
+[SYSTEM MONITOR] CPU: 6.2% | Memory: 2.020 GB
+[SYSTEM MONITOR] CPU: 6.3% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 6.3% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 6.3% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 5.9% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 5.9% | Memory: 1.943 GB
+[SYSTEM MONITOR] CPU: 5.9% | Memory: 1.943 GB
+Number of bins that are empty: 0
+Survey density : 2354.8989550532056 degree**(-2)
+Saving results to: results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/bolshoi.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/bolshoi.hdf5
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/w0waCDM.hdf5...
+H_z=98.48924432965654 km/(Mpc*s), D_a=1472.6614325499345 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/w0waCDM_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/w0waCDM_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/w0waCDM_s_1d_correlation.png
+The average of delta_s over mu is 0.36656285061171445 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/w0waCDM_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/millennium.hdf5...
+H_z=100.40383080919621 km/(Mpc*s), D_a=1409.958095537031 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/millennium_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/millennium_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/millennium_s_1d_correlation.png
+The average of delta_s over mu is 1.1978473682722182 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/millennium_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/illustris.hdf5...
+H_z=98.86917961709236 km/(Mpc*s), D_a=1446.907892220451 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/illustris_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/illustris_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/illustris_s_1d_correlation.png
+The average of delta_s over mu is 0.7699989493663338 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/illustris_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/planck18.hdf5...
+H_z=98.27659122393095 km/(Mpc*s), D_a=1480.1052588338396 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/planck18_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/planck18_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/planck18_s_1d_correlation.png
+The average of delta_s over mu is 0.40562370273150633 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/planck18_mu_1d_correlation.png
+Generating plots for results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/bolshoi.hdf5...
+H_z=98.07624546636808 km/(Mpc*s), D_a=1456.8922859144832 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/bolshoi_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/bolshoi_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/bolshoi_s_1d_correlation.png
+The average of delta_s over mu is 0.567722478065005 Mpc
+1D correlation plot saved to results_low_sigma8_3/L1000N1800/HYDRO_LOW_SIGMA8/0.65/bolshoi_mu_1d_correlation.png
+
+All snapshots processed successfully.
+End time: Tue 18 Nov 14:52:43 GMT 2025

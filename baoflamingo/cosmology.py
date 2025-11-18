@@ -200,4 +200,4 @@ class cosmo_tools:
         return self.comoving_distance(self.effective_redshift(z))
     
     def effective_hubble_constant(self,z):
-        return self.H0 * self.E(self.effective_redshift(z))
+        return self.H0 * self.E(self.effective_redshift(z))*u.Unit('km/s/Mpc')
