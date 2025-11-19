@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/cosma/home/do012/dc-kort1/BAO/main_pycorr.py", line 60, in <module>
+    plotter = correlation_plotter(
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/cosma/home/do012/dc-kort1/BAO/baoflamingo/plotting_pycorr_new.py", line 52, in __init__
+    if cfg.plotting.correlation_1d:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cosma/home/do012/dc-kort1/BAO/baoflamingo/plotting_pycorr_new.py", line 200, in _plot_mu_1d_correlation
+    plt.ylabel("Σμ ξ(s, μ)")
+              ^^^^^^^^^^^^^^
+  File "/cosma/home/do012/dc-kort1/my_env/lib/python3.12/site-packages/unyt/array.py", line 2063, in __array_function__
+    return func._implementation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cosma/home/do012/dc-kort1/my_env/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py", line 565, in average
+    raise ZeroDivisionError(
+ZeroDivisionError: Weights sum to zero, can't be normalized

@@ -52,6 +52,7 @@ class correlation_plotter:
         if cfg.plotting.correlation_1d:
             self._plot_s_1d_correlation()
             self._plot_mu_1d_correlation()
+            self._plot_s_bins_1d_correlation(bins_per_plot=4)
 
 
     def load_data(self, filename):
@@ -182,7 +183,7 @@ class correlation_plotter:
                                     correlation=xi_plot,
                                     yerror=std_plot, 
                                     initial_amplitude=0.005, 
-                                    initial_mean=150, 
+                                    initial_mean=self.BAO.value, 
                                     initial_stddev=5)
         
         plt.figure(figsize=(8,6))
@@ -233,7 +234,7 @@ class correlation_plotter:
         plt.figure(figsize=(8,6))
         plt.scatter(mu_plot[positive_mu], delta_s_mu[positive_mu])
         plt.xlabel("μ")
-        plt.ylabel("Σs ξ(s, μ)")
+        plt.ylabel("s-s_bao [Mpc]")
         plt.title("1D correlation of ξ(s, μ) --> ξ(μ)")
         #plotting
         filename_plot=str(self.filename)
@@ -243,4 +244,89 @@ class correlation_plotter:
         plt.close()
         print(f"1D correlation plot saved to {filename_plot}")
        
+
+    def _plot_s_bins_1d_correlation(self, bins_per_plot=2):
+        """
+        Compute 1D correlation ξ(s) for subsets of positive μ bins and plot them.
+
+        bins_per_plot = 2 → 4 plots total (2 μ-bins each)
+        bins_per_plot = 4 → 2 plots total (4 μ-bins each)
+        """
+
+        # --- Select positive μ bins ---
+        positive_mu_mask = (self.mu >= 0)
+        mu_positive = self.mu[positive_mu_mask]       # shape = (Nmu,)
+        xi_positive = self.xi[:, positive_mu_mask]    # shape = (Ns, Nmu)
+        var_positive = self.var_xi[:, positive_mu_mask]
+
+        nbins = len(mu_positive)
+        
+
+        # split into groups
+        # Example for bins_per_plot = 2:
+        # split indices [0,1], [2,3], [4,5], [6,7]
+        indices = np.arange(nbins)
+        groups = [indices[i:i+bins_per_plot] for i in range(0, nbins, bins_per_plot)]
+
+        # Loop over μ-bin groups
+        for gi, group in enumerate(groups):
+
+            # --- Reduce ξ(s,μ) over the selected μ-bins ---
+            xi_sub = xi_positive[:, group]
+            var_sub = var_positive[:, group]
+
+            # Weighted mean over μ
+            xi_mean = np.average(xi_sub, axis=1, weights=1/var_sub)
+            std_mean = np.sqrt(1 / np.sum(1/var_sub, axis=1))
+
+            # Apply only s-mask (BAO window)
+            s_plot = self.s[self.mask_BAO]
+            xi_plot = xi_mean[self.mask_BAO]
+            std_plot = std_mean[self.mask_BAO]
+
+            # --- Gaussian fit with your existing function ---
+            gauss_fit, mu_fit, sigma_fit = gaussian_data(
+                distances=s_plot.value,
+                correlation=xi_plot,
+                yerror=std_plot,
+                initial_amplitude=0.005,
+                initial_mean=self.BAO.value,
+                initial_stddev=5
+            )
+
+            # --- Plot ---
+            plt.figure(figsize=(8,6))
+            plt.axvline(self.BAO.value, color='orange', linestyle='--',
+                        label=f'Expected BAO Position={self.BAO.value:.1f} {self.BAO.units}')
+
+            plt.errorbar(
+                s_plot, xi_plot, yerr=std_plot,
+                color='green', marker='x', linestyle='None',
+                capsize=3, label='Data'
+            )
+
+            plt.scatter(
+                s_plot, gauss_fit, color='red',
+                label=(f'Gaussian Fit, μ={mu_fit[0]:.2f} ± {mu_fit[1]:.2f} Mpc, '
+                    f'σ={sigma_fit[0]:.2f} ± {sigma_fit[1]:.2f} Mpc')
+            )
+
+            # Group label
+            mu_range_label = f"μ in [{mu_positive[group[0]]:.2f}, {mu_positive[group[-1]]:.2f}]"
+
+            plt.xlabel(f"s [{self.s.units}]")
+            plt.ylabel("Σμ ξ(s, μ)")
+            plt.title(f"1D correlation for {mu_range_label}")
+            plt.legend()
+
+            # Save
+            filename_plot = str(self.filename).replace(
+                ".hdf5",
+                f"_s_1d_correlation_mu_group{gi}.png"
+            )
+            plt.tight_layout()
+            plt.savefig(filename_plot, dpi=300)
+            plt.close()
+
+            print(f"Saved μ-group {gi}: {filename_plot}")
 

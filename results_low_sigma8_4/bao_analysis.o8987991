@@ -1,0 +1,167 @@
+====
+Starting job 8987991 at Tue 18 Nov 14:30:19 GMT 2025 for user dc-kort1.
+Running on nodes: mad02
+====
+Running on host: mad02.pri.cosma.local
+Start time: Tue 18 Nov 14:30:19 GMT 2025
+Python 3.12.4
+Found snapshot numbers: [63, 67]
+
+=== Running for snapshot 63 ===
+[SYSTEM MONITOR] CPU: 0.0% | Memory: 0.262 GB
+Snapshot 63 loaded
+Snapshot redshift: 0.7
+The size of the box is 1000.00 Mpc
+Cosmology set up
+Centre radius is 2566.5444773815793 Mpc
+Thickness of slice is: 594.2762441691502 Mpc
+634.217905687016 Mpc
+No complete spherical slice is possible
+Filters set up
+Stellar mass filter applied
+Radial filter applied
+[SYSTEM MONITOR] CPU: 7.1% | Memory: 1.615 GB
+Pass percentage after luminosity filter of galaxies with stellar mass: 7.29%
+Luminosity filter applied
+Data size after filtering: 29903
+[SYSTEM MONITOR] CPU: 6.0% | Memory: 1.742 GB
+[SYSTEM MONITOR] CPU: 6.2% | Memory: 1.786 GB
+Number of bins that are empty: 0
+Survey density : 1673.5774732561306 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/w0waCDM.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/w0waCDM.hdf5
+[SYSTEM MONITOR] CPU: 6.3% | Memory: 1.810 GB
+[SYSTEM MONITOR] CPU: 6.0% | Memory: 1.812 GB
+Number of bins that are empty: 0
+Survey density : 1485.298161317887 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/millennium.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/millennium.hdf5
+[SYSTEM MONITOR] CPU: 5.6% | Memory: 1.807 GB
+Number of bins that are empty: 0
+Survey density : 1597.6651848341378 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/illustris.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/illustris.hdf5
+[SYSTEM MONITOR] CPU: 4.9% | Memory: 1.824 GB
+[SYSTEM MONITOR] CPU: 4.9% | Memory: 1.820 GB
+Number of bins that are empty: 0
+Survey density : 1696.8515698269887 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/planck18.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/planck18.hdf5
+[SYSTEM MONITOR] CPU: 4.5% | Memory: 1.872 GB
+[SYSTEM MONITOR] CPU: 4.2% | Memory: 1.819 GB
+Number of bins that are empty: 0
+Survey density : 1632.2503234193127 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/bolshoi.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/bolshoi.hdf5
+Generating plots for results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/w0waCDM.hdf5...
+H_z=100.99230802538797 km/(Mpc*s), D_a=1510.2305988723087 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/w0waCDM_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/w0waCDM_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/w0waCDM_s_1d_correlation.png
+The average of delta_s over mu is 0.7447792566482327 Mpc
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/w0waCDM_mu_1d_correlation.png
+Generating plots for results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/millennium.hdf5...
+H_z=102.71852642096952 km/(Mpc*s), D_a=1447.7427457229066 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/millennium_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/millennium_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/millennium_s_1d_correlation.png
+The average of delta_s over mu is 0.09542883901327315 Mpc
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/millennium_mu_1d_correlation.png
+Generating plots for results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/illustris.hdf5...
+H_z=101.25172458643088 km/(Mpc*s), D_a=1484.8723636992002 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/illustris_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/illustris_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/illustris_s_1d_correlation.png
+The average of delta_s over mu is 1.2388473810300944 Mpc
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/illustris_mu_1d_correlation.png
+Generating plots for results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/planck18.hdf5...
+H_z=100.80147196291949 km/(Mpc*s), D_a=1517.641407479744 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/planck18_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/planck18_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/planck18_s_1d_correlation.png
+The average of delta_s over mu is 0.44896911032811104 Mpc
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/planck18_mu_1d_correlation.png
+Generating plots for results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/bolshoi.hdf5...
+H_z=100.42835162074498 km/(Mpc*s), D_a=1495.2098723031982 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/bolshoi_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/bolshoi_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/bolshoi_s_1d_correlation.png
+The average of delta_s over mu is 1.0711362493510102 Mpc
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.7/bolshoi_mu_1d_correlation.png
+
+=== Running for snapshot 67 ===
+[SYSTEM MONITOR] CPU: 0.0% | Memory: 0.523 GB
+Snapshot 67 loaded
+Snapshot redshift: 0.5
+The size of the box is 1000.00 Mpc
+Cosmology set up
+Centre radius is 1935.4256477239137 Mpc
+Thickness of slice is: 670.0351022093266 Mpc
+714.4300839192576 Mpc
+No complete spherical slice is possible
+Filters set up
+Stellar mass filter applied
+Radial filter applied
+[SYSTEM MONITOR] CPU: 4.0% | Memory: 1.665 GB
+[SYSTEM MONITOR] CPU: 4.1% | Memory: 1.665 GB
+Pass percentage after luminosity filter of galaxies with stellar mass: 9.08%
+Luminosity filter applied
+Data size after filtering: 43585
+[SYSTEM MONITOR] CPU: 4.4% | Memory: 1.731 GB
+[SYSTEM MONITOR] CPU: 4.3% | Memory: 1.754 GB
+[SYSTEM MONITOR] CPU: 3.6% | Memory: 1.885 GB
+[SYSTEM MONITOR] CPU: 3.6% | Memory: 1.925 GB
+[SYSTEM MONITOR] CPU: 3.5% | Memory: 1.885 GB
+[SYSTEM MONITOR] CPU: 3.4% | Memory: 1.885 GB
+[SYSTEM MONITOR] CPU: 3.4% | Memory: 1.885 GB
+[SYSTEM MONITOR] CPU: 3.4% | Memory: 1.885 GB
+Number of bins that are empty: 0
+Survey density : 1201.59493910009 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/w0waCDM.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/w0waCDM.hdf5
+[SYSTEM MONITOR] CPU: 3.4% | Memory: 1.905 GB
+[SYSTEM MONITOR] CPU: 3.5% | Memory: 1.905 GB
+[SYSTEM MONITOR] CPU: 3.3% | Memory: 1.905 GB
+[SYSTEM MONITOR] CPU: 3.1% | Memory: 1.905 GB
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.905 GB
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.905 GB
+Number of bins that are empty: 0
+Survey density : 1046.628613797035 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/millennium.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/millennium.hdf5
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.945 GB
+[SYSTEM MONITOR] CPU: 3.1% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 3.2% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 3.1% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.906 GB
+Number of bins that are empty: 0
+Survey density : 1135.1728222041777 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/illustris.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/illustris.hdf5
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 3.1% | Memory: 1.984 GB
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 2.8% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 2.6% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 2.6% | Memory: 1.906 GB
+Number of bins that are empty: 0
+Survey density : 1220.9694185937926 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/planck18.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/planck18.hdf5
+[SYSTEM MONITOR] CPU: 2.6% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 2.7% | Memory: 1.983 GB
+[SYSTEM MONITOR] CPU: 2.7% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 2.7% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 2.9% | Memory: 1.906 GB
+[SYSTEM MONITOR] CPU: 3.0% | Memory: 1.906 GB
+Number of bins that are empty: 0
+Survey density : 1158.86774933001 degree**(-2)
+Saving results to: results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/bolshoi.hdf5
+Saved single-slice Landy-Szalay histogram to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/bolshoi.hdf5
+Generating plots for results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/w0waCDM.hdf5...
+H_z=90.37972999918432 km/(Mpc*s), D_a=1311.7108913129107 Mpc, BAO position=151.39231267081715 Mpc
+2D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/w0waCDM_2d_correlation.png
+2D covariance plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/w0waCDM_2d_covariance.png
+1D correlation plot saved to results_low_sigma8_4/L1000N1800/HYDRO_LOW_SIGMA8/0.5/w0waCDM_s_1d_correlation.png
+End time: Tue 18 Nov 16:20:59 GMT 2025

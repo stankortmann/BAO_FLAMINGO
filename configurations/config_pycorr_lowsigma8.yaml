@@ -7,10 +7,10 @@ paths:
   simulation: L1000N1800/HYDRO_LOW_SIGMA8
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
   snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: results_low_sigma8_5 #full path if necessary
+  output_directory: results_low_sigma8_small #full path if necessary
 
 slicing:
-  redshift_bin_width: 0.2 #delta_z of the complete bin, will mark the shell volume
+  redshift_bin_width: 0.1 #delta_z of the complete bin, will mark the shell volume
   
 
 random_catalog:

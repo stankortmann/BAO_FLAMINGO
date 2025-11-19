@@ -1,9 +1,9 @@
 paths:
   base: /cosma/home/do012/dc-kort1/BAO
   simulation: L1000N1800/HYDRO_LOW_SIGMA8
-  results_dir: results_low_sigma8_4
+  results_dir: results_low_sigma8_5
   #mostly use the settings below, unless full paths are given
-  redshift: [0.5]
+  redshift: [0.7]
   cosmology: [bolshoi,millennium,planck18,illustris,w0waCDM] #correct one is always w0waCDM
 
 plotting:
