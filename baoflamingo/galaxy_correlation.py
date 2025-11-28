@@ -9,7 +9,7 @@ from pycorr.twopoint_jackknife import KMeansSubsampler
 from baoflamingo.coordinates import coordinate_tools
 
 
-class correlation_tools_pycorr:
+class correlation_tools:
     """
     Reimplementation of your TreeCorr class using pycorr jackknife counters.
 
@@ -26,15 +26,15 @@ class correlation_tools_pycorr:
       - nsamp, nmu etc available for diagnostics
     """
 
-    def __init__(self,
-                 coordinates,
-                 cosmology,
-                 cfg):
+    def __init__(self, coordinates, cosmology, cfg, rank_id=0):
         # basic bookkeeping
         self.coordinates = coordinates
         self.n_galaxies = np.shape(coordinates)[0]
         self.n_random = int(cfg.random_catalog.oversampling * self.n_galaxies)
         self.cosmo = cosmology
+
+        #MPI rank
+        self.rank_id=rank_id
        
 
         
@@ -92,6 +92,11 @@ class correlation_tools_pycorr:
         # Convert steradians to square degrees
         self.survey_area = area_sr.to(u.deg**2)
         self.survey_density = self.n_galaxies /self.survey_area
+        
+        # calculate survey volume between inner and outer edges of the redshift bin and store it
+        volume =area_sr.value * (self.cosmo.outer_edge_bin**3 - self.cosmo.inner_edge_bin**3) / 3
+        self.survey_volume = volume.to(u.Mpc**3) #only a check
+        print(f"[RANK {self.rank_id}]percentage of total box surveyed: {(self.survey_volume.value/(self.cosmo.box_size**3))/100} %")
           
 
 
@@ -206,19 +211,16 @@ class correlation_tools_pycorr:
             gpu=False
             )
         #actually running the estimator (including the jackknife method)
-        ls_avg,ls_cov=ls.get_corr(return_cov=True)
-        ls_std = np.sqrt(np.diag(ls_cov))
-        #reshaping
-        ls_std=ls_std.reshape(np.shape(ls_avg))
+        xi,cov=ls.get_corr(return_cov=True)
        # Boolean array where True indicates NaN
-        nan_mask = np.isnan(ls_avg)
+        nan_mask = np.isnan(xi)
 
         # Count total number of NaNs
         num_nans = np.sum(nan_mask)
-        print("Number of bins that are empty:", num_nans)
+        print(f"[RANK {self.rank_id}] Number of bins that are empty:", num_nans)
         
-        self.ls_avg= ls_avg
-        self.ls_std= ls_std
+        self.xi= xi #(ns, nmu) array
+        self.cov= cov #(ns*nmu, ns*nmu) array
         # keep metadata
         self.patch_labels_data = patch_labels_data
         self.patch_labels_randoms = patch_labels_random

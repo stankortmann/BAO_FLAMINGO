@@ -44,8 +44,11 @@ class Plotting:
     plot_bao: bool
     
     correlation_2d: bool
-    variance_2d: bool
-    correlation_1d: bool
+    autocovariance_2d: bool
+    covariance_regularization: Union[float, None]
+
+    monopole:bool
+    quadrupole:bool
 
 @dataclass
 class Statistics:
@@ -55,6 +58,16 @@ class Statistics:
 @dataclass
 class Fiducial:
     cosmology: Union[str,list[str]]
+    manual_cosmo : bool # enable manual cosmology grid, if off the cosmologies are selected in the above cosmologies
+
+    # Explicit ranges
+    omega_m_min : float
+    omega_m_max : float
+    omega_lambda_min : float
+    omega_lambda_max : float
+
+    n_points : float  # number of points per axis
+
 
 #important class that orders all the configurations
 @dataclass

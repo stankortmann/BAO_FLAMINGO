@@ -4,7 +4,7 @@ from pathlib import Path
 
 # --- Our own modules ---
 from baoflamingo.data_structure_visual import Config, Paths, Plotting
-from baoflamingo.plotting_pycorr_new import correlation_plotter
+from baoflamingo.plotting import correlation_plotter
 
 
 # -------------------------------------------------------------------

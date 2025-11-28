@@ -8,11 +8,17 @@ import threading
 import h5py
 import unyt as u
 import warnings
+from mpi4py import MPI
+comm = MPI.COMM_WORLD  # global communicator for all processes
+rank = comm.Get_rank()  # integer ID of this process, 0..(size-1)
+size = comm.Get_size()  # total number of processes
+if rank ==0:
+    print(f"The ammount of process running: {size}")
+
 
 # Our own modules
-from baoflamingo.galaxy_correlation_pycorr import correlation_tools_pycorr
+from baoflamingo.galaxy_correlation import correlation_tools
 from baoflamingo.filtering import filtering_tools
-from baoflamingo.statistics import stat_tools
 from baoflamingo.cosmology import cosmo_tools
 from baoflamingo.coordinates import coordinate_tools
 
@@ -42,7 +48,7 @@ def monitor_system(interval=240):
         # Per-process memory usage
         mem_gb = process.memory_info().rss / (1024 ** 3)
         
-        print(f"[SYSTEM MONITOR] CPU: {cpu_percent:.1f}% | Memory: {mem_gb:.3f} GB")
+        print(f"[SYSTEM MONITOR] [Rank {rank}] CPU: {cpu_percent:.1f}% | Memory: {mem_gb:.3f} GB")
  
         time.sleep(interval)
 
@@ -67,15 +73,18 @@ def run_pipeline_single(cfg):
     
     
     data = load(soap_hbt_path + str(int(redshift_number)) + ".hdf5")
-    print("Snapshot", redshift_number, "loaded")
+    if rank ==0:
+        print("Snapshot", redshift_number, "loaded")
     
     # --- Cosmology ---
     metadata = data.metadata
     redshift = redshift_list[redshift_number]
-    print("Snapshot redshift:", redshift)
+    if rank ==0:
+        print("Snapshot redshift:", redshift)
     simulation_cosmology = metadata.cosmology
     box_size = metadata.boxsize[0]
-    print(f"The size of the box is {box_size:.2f}")
+    if rank ==0:
+        print(f"The size of the box is {box_size:.2f}")
     centre = np.array([box_size.value / 2] * 3)
     safe_offset= 5*u.Mpc #away from the box edge to avoid boundary issues
     
@@ -85,12 +94,15 @@ def run_pipeline_single(cfg):
         redshift=redshift,
         redshift_bin_width=cfg.slicing.redshift_bin_width #delta_z
     )
-    print("Cosmology set up")
-    print("Centre radius is",cosmo_real.center_bin)
+    if rank ==0:
+        print("Cosmology set up")
+        print("Centre radius is",cosmo_real.center_bin)
+        print("Thickness of slice is:", cosmo_real.delta_dr)
+    
     del metadata
     gc.collect()
     
-    print("Thickness of slice is:", cosmo_real.delta_dr)
+    
     
     # --- Observer position ---
     if cosmo_real.complete_sphere:
@@ -98,8 +110,8 @@ def run_pipeline_single(cfg):
         shift = np.random.uniform(-0.5*box_size.value, 0.5*box_size.value, size=3)
         
         observer = centre.copy()
-        
-        print("Complete spherical slice is possible")
+        if rank ==0:
+            print("Complete spherical slice is possible")
     
     #We have to take a look at this!
     
@@ -116,20 +128,23 @@ def run_pipeline_single(cfg):
         #in the x direction. This can be proven geometrically.
         fail_safe =safe_offset+cosmo_real.delta_dr+\
         (1-np.cos(cosmo_real.max_angle))*cosmo_real.inner_edge_bin
-        print(fail_safe)
+        
         if fail_safe> box_size:
-            print("No complete spherical slice is possible due to redshift bin width and max angle.")
+            if rank ==0:
+                print("No complete spherical slice is possible due to redshift bin width and max angle.")
             #it has to exit the entire pipeline
             exit()
-        print("No complete spherical slice is possible")
+        if rank ==0:
+            print("No complete spherical slice is possible")
 
 
 
-    # --- Coordinate transformation set up ---
+    # --- Coordinate transformation set-up ---
     coordinates = coordinate_tools(
         cosmology=cosmo_real,
         observer=observer,
-        shift=shift
+        shift=shift,
+        rank_id=rank
     )
 
 
@@ -140,16 +155,18 @@ def run_pipeline_single(cfg):
     filters = filtering_tools(
         soap_file=data,
         cosmology=cosmo_real,
-        cfg=cfg #all the inputs of the configuration
+        cfg=cfg, #all the inputs of the configuration
+        rank_id=rank
     )
     gc.collect()
-    print("Filters set up")
+    if rank ==0:
+        print("Filters set up")
 
 
     # --- Load in galaxy centers ---
     #might have to change this due to the fact that these are not actually
     #the centers of the galaxies but their respective haloes.
-    d_coords = data.input_halos.halo_centre.value
+    d_coords = data.inclusive_sphere_50kpc.centre_of_mass.value
 
     # --- Stellar mass filter and nonzero luminosity ---
     # Apply and keep the filtered coordinates
@@ -182,10 +199,11 @@ def run_pipeline_single(cfg):
 
     data_size = np.shape(d_coords_sph)[0]
     if data_size < 2:
-        print("Empty slice after redshift filtering.")
+        if rank ==0:
+            print("Empty slice after redshift filtering.")
         return
-    
-    print("Data size after filtering:", data_size)
+    if rank ==0:
+        print("Data size after filtering:", data_size)
 
 
     """
@@ -194,51 +212,73 @@ def run_pipeline_single(cfg):
     for either the real cosmology or a fiducial cosmology that is different from the real one.
     This is set in the config file.
     """
-    from colossus.cosmology import cosmology as cosmo_fiducial
+    cosmo_list = []
+    cosmo_list.append(cosmo_real)#first add the real cosmology
 
-    #might add more cosmologies later on, so we do a list
-    cosmo_list = [cosmo_real]
-    filenames=[]
-    #setting the cosmology to the one provided in the config file, can be a list
-    cosmo_names = cfg.fiducial.cosmology
-    for name in cosmo_names if isinstance(cosmo_names, list) else [cosmo_names]:
-        cosmo_fiducial.setCosmology(name)
+    if cfg.fiducial.manual_cosmo:
+        #manual MCMC
+        omega_m_vals = np.linspace(cfg.fiducial.omega_m_min, cfg.fiducial.omega_m_max, cfg.fiducial.n_points)
+        omega_lambda_vals = np.linspace(cfg.fiducial.omega_lambda_min, cfg.fiducial.omega_lambda_max, cfg.fiducial.n_points)
 
-        cosmo_new = cosmo_tools(
-            box_size=box_size,
-            constants=cosmo_fiducial.current_cosmo,
-            redshift=redshift,
-            redshift_bin_width=cfg.slicing.redshift_bin_width #delta_z
+        for Om in omega_m_vals:
+            for Ol in omega_lambda_vals:
+                cosmo_new = cosmo_tools(
+                    box_size=box_size,
+                    constants={"Omega_m": Om, "Omega_lambda": Ol},
+                    redshift=redshift,
+                    redshift_bin_width=cfg.slicing.redshift_bin_width
+                )
+                cosmo_list.append(cosmo_new)
+
+    else:
+        # Existing Colossus cosmology setup
+        from colossus.cosmology import cosmology as cosmo_fiducial
+        cosmo_names = cfg.fiducial.cosmology
+        for name in cosmo_names if isinstance(cosmo_names, list) else [cosmo_names]:
+            cosmo_fiducial.setCosmology(name)
+
+            cosmo_new = cosmo_tools(
+                box_size=box_size,
+                constants=cosmo_fiducial.current_cosmo,
+                redshift=redshift,
+                redshift_bin_width=cfg.slicing.redshift_bin_width
             )
-        cosmo_list.append(cosmo_new)
+            cosmo_list.append(cosmo_new)
 
-
+    #we will now use MPI parallelisation to distribute the different cosmologies across ranks
+    
+    #dividing up the cosmologies over the different ranks
+    mpi_cosmo_list=cosmo_list[rank::size]
     
 
 
     # --- Correlation ---
-
+    filenames={}
     #will be done for all cosmologies provided
-    for cosmo in cosmo_list:
-        correlation = correlation_tools_pycorr(
+    for cosmo in mpi_cosmo_list:
+        correlation = correlation_tools(
                 coordinates=d_coords_sph,
                 cosmology=cosmo,
-                cfg=cfg
+                cfg=cfg,
+                rank_id=rank
         
         )
         
         
 
-        print("Survey density :", correlation.survey_density)
+        print(f"Survey density in cosmology {cosmo.name}: {correlation.survey_density}")
+        print(f"Survey volume in cosmology {cosmo.name}: {correlation.survey_volume}")
         
         
 
-
+        
 
         # --- Save output using HDF5 ---
-
+        #realization number from SLURM array
+        realization = int(os.environ.get("REALIZATION_ID", 0))
+    
         # Construct nested output directory structure
-        output_dir = os.path.join(cfg.paths.output_directory, simulation, str(redshift))
+        output_dir = os.path.join("results",cfg.paths.output_directory, simulation, str(redshift),f"run_{realization:03d}")
 
         # Make sure it exists (this creates all intermediate subdirectories)
         os.makedirs(output_dir, exist_ok=True)
@@ -248,8 +288,10 @@ def run_pipeline_single(cfg):
             output_dir,
             f"{cosmo.name}.hdf5"
         )
+        #save the filename to the dictionary
+        filenames[cosmo.name]=output_filename
 
-        print("Saving results to:", output_filename)
+        print(f"Rank {rank} saving results of cosmology {cosmo.name} to:", output_filename)
 
 
         with h5py.File(output_filename, "w") as f:
@@ -257,9 +299,13 @@ def run_pipeline_single(cfg):
             # --- Unitless arrays / scalars ---
             f.create_dataset("oversampling_factor", data=cfg.random_catalog.oversampling)
             f.create_dataset("random_size", data=correlation.n_random)
-            f.create_dataset("ls_avg", data=correlation.ls_avg)
-            f.create_dataset("ls_std", data=correlation.ls_std)
+            f.create_dataset("delta_z", data=cfg.slicing.redshift_bin_width)
             f.create_dataset("effective_redshift", data=correlation.effective_redshift)
+            
+            #most important data
+            f.create_dataset("xi", data=correlation.xi)
+            f.create_dataset("cov", data=correlation.cov)
+
 
             # --- Arrays / scalars with units ---
             f.create_dataset("slice_thickness", data=cosmo_real.delta_dr.value)
@@ -270,10 +316,13 @@ def run_pipeline_single(cfg):
             
             f.create_dataset("survey_area", data=correlation.survey_area.value)
             f["survey_area"].attrs["units"] = str(correlation.survey_area.units)
+
+            f.create_dataset("survey_volume", data=correlation.survey_volume.value)
+            f["survey_volume"].attrs["units"] = str(correlation.survey_volume.units)
             
-            #only save the real cosmology's bao distance!
-            f.create_dataset("BAO_distance", data=cosmo_real.bao_distance.value)
-            f["BAO_distance"].attrs["units"] = str(cosmo_real.bao_distance.units)
+            #save the bao distance of the fiducial cosmology used
+            f.create_dataset("BAO_distance", data=cosmo.bao_distance.value)
+            f["BAO_distance"].attrs["units"] = str(cosmo.bao_distance.units)
 
 
             f.create_dataset("effective_radius", data=correlation.effective_radius.value)
@@ -292,8 +341,16 @@ def run_pipeline_single(cfg):
 
             f.create_dataset("mu_bin_centers", data=correlation.mu_bin_centers)
             
+        print(f"Rank {rank}: saved {output_filename}")
+    
+    all_filenames_dicts = comm.gather(filenames, root=0)
 
-
-        print("Saved single-slice Landy-Szalay histogram to", output_filename)
-        filenames.append(output_filename)
-    return filenames #for plotting in the same pipeline!
+    if rank == 0:
+        # Combine dictionaries from all ranks
+        combined_filenames = {}
+        for d in all_filenames_dicts:
+            combined_filenames.update(d)
+        
+        return combined_filenames
+    else:
+        return None

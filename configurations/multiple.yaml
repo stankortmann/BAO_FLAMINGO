@@ -7,7 +7,7 @@ paths:
   simulation: L1000N1800/HYDRO_PLANCK
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
   snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: results_planck_small #full path if necessary
+  output_directory: results_multiple #full path if necessary
 
 slicing:
   redshift_bin_width: 0.1 #delta_z of the complete bin, will mark the shell volume
@@ -59,7 +59,7 @@ statistics:
   n_patches: 100 #jackknife patches
 
 fiducial:
-  cosmology: [millennium, illustris,planck18,bolshoi]
+  cosmology: [illustris,planck18]
   #options:
   #'planck18-only', 'planck18', 'planck15-only', 
   #'planck15', 'planck13-only', 'planck13', 'WMAP9-only', 

@@ -5,13 +5,16 @@ from scipy.interpolate import interp1d
 
 
 class filtering_tools:
-    def __init__(self,soap_file,cosmology,cfg):
+    def __init__(self,soap_file,cosmology,cfg,rank_id=0):
         
         #saving the soap file inside the instance, might be good to remain outside but not quite sure
         self.file=soap_file
 
         #saving cosmology instance
         self.cosmo=cosmology
+
+        #MPI rank id
+        self.rank_id=rank_id
 
         #stellar mass filter parameters and if we have to use it
         self.stellar_mass_filter_switch=cfg.filters.stellar_mass_filter
@@ -73,9 +76,15 @@ class filtering_tools:
         # r ---> z
         redshift_coordinates=self.cosmo.comoving_distance_to_redshift(rad_coordinates)
         # now introduce an error in the z_coordinate and overwrite
-        redshift_coordinates=self.cosmo.redshift_with_error(redshift_coordinates)
-        #might need extra redshift filtering after this!!
-        #maybe revert back to r?
+
+        """
+        Overwriting the redshift error, since we want to know if the introduced error makes the bao scale shift
+        to lower length scales than we think
+        """
+        #redshift_coordinates=self.cosmo.redshift_with_error(redshift_coordinates)
+        
+        
+        
         #now unpack the theta and phi within 
         theta_phi_coordinates=sph_coordinates[:,1:]
 
@@ -85,8 +94,8 @@ class filtering_tools:
         
         #final stacking
         complete_coordinates=np.column_stack((theta_phi_coordinates,redshift_coordinates))
-
-        print("Radial filter applied")
+        if self.rank_id ==0:
+            print("Radial filter applied")
         return complete_coordinates #(theta,phi,z)
 
     def redshift_filter(self,coordinates): #input is (theta,phi,z)
@@ -114,28 +123,30 @@ class filtering_tools:
         self.total_mask=old_mask
         
         coordinates=coordinates[central_mask]
-        print("Central filter applied")
+        if self.rank_id ==0:
+            print("Central filter applied")
         return coordinates
 
     
     def stellar_mass_filter(self,coordinates):
         old_mask=self.total_mask.copy()
 
-        stellar_mass=self.file.bound_subhalo.stellar_mass[old_mask]
+        stellar_mass=self.file.inclusive_sphere_50kpc.stellar_mass[old_mask]
         stellar_mass_mask= (stellar_mass>self.stellar_mass_cutoff)
         #updating internal total_mask
         old_mask[old_mask]=stellar_mass_mask
         self.total_mask=old_mask
         
         coordinates=coordinates[stellar_mass_mask]
-        print("Stellar mass filter applied")
+        if self.rank_id ==0:
+            print("Stellar mass filter applied")
         return coordinates
 
 
     def zero_luminosity_filter(self,coordinates):
         old_mask=self.total_mask.copy()
         
-        lum = self.file.bound_subhalo.stellar_luminosity.value[old_mask]
+        lum = self.file.inclusive_sphere_50kpc.stellar_luminosity.value[old_mask]
         mask_zero = np.any(lum == 0, axis=1)
         #updating internal total_mask
         old_mask[old_mask] = ~mask_zero
@@ -155,7 +166,7 @@ class filtering_tools:
         log_lambda_eff=np.log10(lambda_eff)
         
         # shape (N_gal, N_bands)
-        lum = self.file.bound_subhalo.stellar_luminosity.value[old_mask]
+        lum = self.file.inclusive_sphere_50kpc.stellar_luminosity.value[old_mask]
         
         
         
@@ -266,15 +277,17 @@ class filtering_tools:
             m_mask=target_filter_lrg(redshift=coordinates[:,2])
             
         pass_fraction = np.count_nonzero(m_mask) / len(m_mask) * 100
-        print(f"Pass percentage after luminosity filter of \
-galaxies with stellar mass: {pass_fraction:.2f}%")
+        if self.rank_id ==0:
+
+            print(f"Pass percentage after luminosity filter of galaxies with stellar mass: {pass_fraction:.2f}%")
         
         #updating internal total_mask
         old_mask[old_mask]=m_mask
         self.total_mask=old_mask
         
         coordinates=coordinates[m_mask]
-        print("Luminosity filter applied")
+        if self.rank_id ==0:
+            print("Luminosity filter applied")
         
         
         

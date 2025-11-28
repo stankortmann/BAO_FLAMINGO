@@ -4,13 +4,13 @@ paths:
   redshift_file: output_list.txt #do not touch!
 
   #only thouch these parts below!!
-  simulation: L1000N3600/HYDRO_FIDUCIAL 
+  simulation: L1000N1800/HYDRO_PLANCK
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [58,60,62,64,66,68] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: results_millennium_2 #full path if necessary
+  snapshot_number: [67] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  output_directory: test_poles #full path if necessary
 
 slicing:
-  redshift_bin_width: 0.3 #delta_z of the complete bin, will mark the shell volume
+  redshift_bin_width: 0.1 #delta_z of the complete bin, will mark the shell volume
   
 
 random_catalog:
@@ -34,34 +34,49 @@ filters:
 plotting:
 
 #--- mu ---
-  mu_bins: 40
+  mu_bins: 16
   mu_min: -1 #cosine 
   mu_max: 1  #cosine
 
 #--- s ---
-  s_bins: 200
-  s_min: 0  #Mpc
-  s_max: 300 #Mpc  #actually 300 Mpc!!!
+  s_bins: 30
+  s_min: 100  #Mpc
+  s_max: 200 #Mpc 
 
 #other settings
   expected_bao_position: 150 #Mpc, to highlight in plots
-  bao_window: 20 #Mpc, window around the expected BAO position to highlight in plots
-  plot_bao: on #whether to plot the BAO position or not in the 2d correlation plots
+  bao_window: 60 #Mpc, window around the expected BAO position to highlight in plots
+  plot_bao: off #whether to plot the BAO position or not in the 2d correlation plots
   
   #if you want the plots, set to 'on', else 'off'
   correlation_2d: on
-  variance_2d: on
-  correlation_1d: on
+  autocovariance_2d: on
+  covariance_regularization: None #regularization factor for the covariance matrix to ensure numerical stability, can be None
+  #for either mu or s slices!
+  
+  #poles plots
+  monopole: on
+  quadrupole: on
   
 
 statistics:
   n_patches: 100 #jackknife patches
 
 fiducial:
-  cosmology: millennium
+  cosmology: [illustris,planck18]
   #options:
   #'planck18-only', 'planck18', 'planck15-only', 
   #'planck15', 'planck13-only', 'planck13', 'WMAP9-only', 
   #'WMAP9-ML', 'WMAP9', 'WMAP7-only', 'WMAP7-ML', 'WMAP7', 'WMAP5-only', 
   #'WMAP5-ML', 'WMAP5', 'WMAP3-ML', 'WMAP3', 'WMAP1-ML', 'WMAP1', 'illustris', 'bolshoi',
   # 'multidark-planck', 'millennium', 'EdS', 'powerlaw'
+
+  manual_cosmo : off # enable manual cosmology grid, if off the cosmologies are selected in the above cosmologies
+
+  # Explicit ranges
+  omega_m_min : 0.3
+  omega_m_max : 0.4
+  omega_lambda_min : 0.6
+  omega_lambda_max : 0.7
+
+  n_points : 5  # number of points per axis
