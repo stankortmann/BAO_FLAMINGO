@@ -6,8 +6,8 @@ paths:
   #only thouch these parts below!!
   simulation: L1000N1800/HYDRO_PLANCK
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: test_poles #full path if necessary
+  snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  output_directory: test_mcmc_3 #full path if necessary
 
 slicing:
   redshift_bin_width: 0.1 #delta_z of the complete bin, will mark the shell volume
@@ -56,6 +56,9 @@ plotting:
   
   #multipole plots
   monopole: on
+  fit_gaussian: off
+  fit_noshift: off
+  fit_shift: on
   quadrupole: on
   
 
@@ -74,7 +77,7 @@ fiducial:
 
   
   # --- Manual MCMC settings ---
-  manual_cosmo : off # enable manual cosmology grid, if off the cosmologies are selected in the above cosmologies
+  manual_cosmo : on # enable manual cosmology grid, if off the cosmologies are selected in the above cosmologies
 
   # Explicit ranges
   omega_m_min : 0.2
@@ -82,4 +85,4 @@ fiducial:
   omega_lambda_min : 0.6
   omega_lambda_max : 0.7
 
-  n_points : 15  # number of points per axis
+  n_points : 14  # number of points per axis

@@ -4,8 +4,10 @@ import unyt as u
 import h5py
 from scipy.interpolate import UnivariateSpline
 
-from baoflamingo.fitting import gaussian_data
+
+from baoflamingo.fitting import BAO_fitter
 from baoflamingo.multipole import multipole_projector
+
 
 class correlation_plotter:
     """
@@ -27,19 +29,31 @@ class correlation_plotter:
         filename : str
             Path to the HDF5 file containing s_bin_centers, mu_bin_centers, xi, cov.
         """
+        self.cfg=cfg
         self.filename = filename
         self.load_data(filename)
 
         #multipole creation
-        pole_proj = multipole_projector(
-            mu=self.mu,
-            s=self.s,
-            ell_list=(0,2), #0=monopole,2=quadrupole
-            mu_range_minus1_to1=True, #can change in the future if needed but not right now
-            regularize=cfg.plotting.covariance_regularization
-        )
-        self.mono_xi,self.mono_err=pole_proj.multipoles[0],pole_proj.errors[0]
-        self.quad_xi,self.quad_err=pole_proj.multipoles[2],pole_proj.errors[2]
+        if cfg.plotting.monopole or cfg.plotting.quadrupole:
+            if cfg.plotting.monopole and cfg.plotting.quadrupole:
+                l_list=[0,2]
+            elif cfg.plotting.monopole and not cfg.plotting.quadrupole:
+                l_list=[0]
+            elif cfg.plotting.quadrupole and not cfg.plotting.monopole:
+                l_list=[2]
+            pole_proj = multipole_projector(
+                xi=self.xi_data,
+                cov=self.cov_data,
+                mu=self.mu_data,
+                s=self.s_data,
+                ell_list=l_list, #0=monopole,2=quadrupole
+                mu_range_minus1_to1=True, #can change in the future if needed but not right now
+                #regularize=cfg.plotting.covariance_regularization
+            )
+            if cfg.plotting.monopole:
+                self.mono_data,self.mono_data_err=pole_proj.multipoles[0],pole_proj.errors[0]
+            if cfg.plotting.quadrupole:
+                self.quad_data,self.quad_data_err=pole_proj.multipoles[2],pole_proj.errors[2]
      
 
         #rebinning if needed
@@ -50,13 +64,17 @@ class correlation_plotter:
         BAO_window = cfg.plotting.bao_window*u.Mpc
         #window around the expected BAO position for plotting, determines the 
         #colormesh scale, important and configured in yaml file
-        self.mask_BAO = (self.s > self.BAO - 0.5*BAO_window) & (self.s < self.BAO + 0.5*BAO_window)
-        #this is a wide window only for the 1d correlation plot, hardcoded though
-        BAO_window_1d = 80*u.Mpc
-        self.mask_s_1d_BAO = (self.s > self.BAO - 0.5*BAO_window_1d) & (self.s < self.BAO + 0.5*BAO_window_1d)
+        self.mask_BAO = (self.s_data > self.BAO - 0.5*BAO_window) & (self.s_data < self.BAO + 0.5*BAO_window)
+        
         
         #plot the bao ridge spline if wanted in the 2d correlation plot
         self.bao_ridge = cfg.plotting.plot_bao
+
+
+        # --- Setting up the fitting class ---
+        self.fit=BAO_fitter(s_template=self.s_template.value,
+                 mono_template=self.mono_template, mono_template_err=None,
+                 quad_template=self.quad_template, quad_template_err=None,)
 
         #plotting if you want to plot the following statistics
         if cfg.plotting.correlation_2d:
@@ -76,15 +94,39 @@ class correlation_plotter:
             def load_dataset(key):
                 dset = f[key]
                 return dset[()] * u.Unit(dset.attrs["units"]) if "units" in dset.attrs else dset[()]
-            
-            self.s = load_dataset("s_bin_centers")
-            self.mu = load_dataset("mu_bin_centers")
-            self.xi = load_dataset("xi")
-            self.cov = load_dataset("cov") if "cov" in f else np.ones_like(self.xi)
+            #data loading
+            self.s_data = load_dataset("s_bin_centers")
+            self.mu_data = load_dataset("mu_bin_centers")
+            self.xi_data = load_dataset("xi")
+            self.cov_data = load_dataset("cov") if "cov" in f else np.ones_like(self.xi_data)
             self.BAO = load_dataset("BAO_distance")
             self.H_z= load_dataset("effective_H_z")
             self.D_a= load_dataset("effective_D_a")
             print(f"H_z={self.H_z}, D_a={self.D_a}, BAO position={self.BAO}")
+
+
+            #template loading
+            self.s_template=load_dataset("template_s")
+            self.mono_template=load_dataset("template_xi0")
+            self.quad_template=load_dataset("template_xi2")
+
+            #loading other stuff
+            self.name=load_dataset("name")
+
+            #loading the parameters to save in the output file set in the config
+            for param in self.cfg.fiducial.parameters_to_save:
+                setattr(self, param, load_dataset(param))
+            #loading the parameters for MCMC grid if manual cosmology is enabled 
+            if self.cfg.fiducial.manual_cosmo:
+                n_parameters=len(self.cfg.fiducial.parameters_mcmc)
+                if n_parameters==1:
+                    self.para_name=self.cfg.fiducial.parameters_mcmc[0]
+                    setattr(self, 'para_value', load_dataset(self.para_name))
+                elif n_parameters==2:
+                    self.para1_name=self.cfg.fiducial.parameters_mcmc[0]
+                    self.para2_name=self.cfg.fiducial.parameters_mcmc[1]
+                    setattr(self, 'para1_value', load_dataset(self.para1_name))
+                    setattr(self, 'para2_value', load_dataset(self.para2_name))
 
             #will have to be implemented later on when this is passed on in the .hdf5 file!!!!
             #self.bao_position = load_dataset("bao_position")
@@ -110,26 +152,27 @@ class correlation_plotter:
         rebinned = array.reshape(new_shape).mean(axis=axis+1)
         return rebinned
 
+
     def _rebin_all(self,s_rebin=1, mu_rebin=1):
         #2D autocovariance
-        self.auto_covar = np.diag(self.cov)
+        self.auto_covar = np.diag(self.cov_data)
         self.auto_covar = self.rebin(array=self.auto_covar, factor=mu_rebin, axis=1)
         self.auto_covar = self.rebin(array=self.auto_covar, factor=s_rebin, axis=0)
         
         #2D correlation
-        self.xi = self.rebin(array=self.xi, factor=mu_rebin, axis=1)
-        self.xi = self.rebin(array=self.xi, factor=s_rebin, axis=0)
+        self.xi_data = self.rebin(array=self.xi_data, factor=mu_rebin, axis=1)
+        self.xi_data = self.rebin(array=self.xi_data, factor=s_rebin, axis=0)
         
         #multipoles
-        self.mono_xi =self.rebin(array=self.mono_xi,factor=s_rebin,axis=0)
-        self.mono_xi_err =self.rebin(array=self.mono_xi_err,factor=s_rebin,axis=0)
+        self.mono_data =self.rebin(array=self.mono_data,factor=s_rebin,axis=0)
+        self.mono_data_err =self.rebin(array=self.mono_data_err,factor=s_rebin,axis=0)
 
-        self.quad_xi =self.rebin(array=self.quad_xi,factor=s_rebin,axis=0)
-        self.quad_xi_err =self.rebin(array=self.quad_xi_err,factor=s_rebin,axis=0)
+        self.quad_data =self.rebin(array=self.quad_data,factor=s_rebin,axis=0)
+        self.quad_data_err =self.rebin(array=self.quad_data_err,factor=s_rebin,axis=0)
         
         #mu and s
-        self.mu = self.rebin(self.mu, mu_rebin, axis=0)
-        self.s = self.rebin(self.s, s_rebin, axis=0)
+        self.mu_data = self.rebin(self.mu_data, mu_rebin, axis=0)
+        self.s_data = self.rebin(self.s_data, s_rebin, axis=0)
 
 
     def _plot_2d_correlation(self):
@@ -137,25 +180,25 @@ class correlation_plotter:
         
 
         plt.figure(figsize=(8,6))
-        vlim = np.nanmax(np.abs(self.xi[self.mask_BAO, :]))
-        im = plt.pcolormesh(self.s, self.mu, self.xi.T, shading="auto", cmap="seismic",
+        vlim = np.nanmax(np.abs(self.xi_data[self.mask_BAO, :]))
+        im = plt.pcolormesh(self.s_data, self.mu_data, self.xi_data.T, shading="auto", cmap="seismic",
                             vmin=-vlim, vmax=vlim)
         plt.colorbar(im, label="ξ(s, μ)")
-        plt.xlabel(f"s [{self.s.units}] (Comoving)")
+        plt.xlabel(f"s [{self.s_data.units}] (Comoving)")
         plt.ylabel("μ")
         plt.title("2D correlation function")
 
         # BAO ridge
         if self.bao_ridge:
             
-            s_bao_max = np.array([self.s[self.mask_BAO][np.nanargmax(self.xi[self.mask_BAO, i])] for i in range(len(self.mu))])
+            s_bao_max = np.array([self.s_data[self.mask_BAO][np.nanargmax(self.xi_data[self.mask_BAO, i])] for i in range(len(self.mu_data))])
 
             # weights from ls_std
             var_ridge = np.nanmean(self.ls_std[self.mask_BAO, :]**2, axis=0)
             weights = 1.0 / var_ridge
 
-            spline = UnivariateSpline(self.mu, s_bao_max, w=weights, s=2000)
-            mu_smooth = np.linspace(self.mu.min(), self.mu.max(), 500)
+            spline = UnivariateSpline(self.mu_data, s_bao_max, w=weights, s=2000)
+            mu_smooth = np.linspace(self.mu_data.min(), self.mu_data.max(), 500)
             s_smooth = spline(mu_smooth)
             plt.plot(s_smooth, mu_smooth, color="green", linestyle="--", linewidth=2, label="BAO ridge spline")
             plt.legend()
@@ -175,12 +218,12 @@ class correlation_plotter:
 
         
         plt.figure(figsize=(8,6))
-        im = plt.pcolormesh(self.s, self.mu, self.auto_covar.T,
+        im = plt.pcolormesh(self.s_data, self.mu_data, self.auto_covar.T,
              shading="auto", cmap="viridis",
              vmin=np.nanmin(self.auto_covar[self.mask_BAO, :]),
              vmax=np.nanmax(self.auto_covar[self.mask_BAO, :]))
         plt.colorbar(im, label="Var[ξ(s, μ)]")
-        plt.xlabel(f"s [{self.s.units}]")
+        plt.xlabel(f"s [{self.s_data.units}]")
         plt.ylabel("μ")
         plt.title("Autocovariance of ξ(s, μ)")
         #plotting
@@ -191,12 +234,13 @@ class correlation_plotter:
         plt.close()
         print(f"2D autocovariance plot saved to {filename_plot}")
 
+
     def _plot_monopole(self):
         """monopole of the correlation"""
 
-        s = self.s[self.mask_BAO] 
-        mono_xi = self.mono_xi[self.mask_BAO]
-        mono_xi_err=self.mono_xi_err[self.mask_BAO] 
+        s_data = self.s_data[self.mask_BAO] 
+        mono_data = self.mono_data[self.mask_BAO]
+        mono_data_err=self.mono_data_err[self.mask_BAO] 
         
         
         plt.figure(figsize=(8,6))
@@ -206,29 +250,82 @@ class correlation_plotter:
          linestyle='--', label=f'Expected BAO Position={self.BAO.value:.1f} {self.BAO.units}')
         
         #errorbar plot of the data
-        plt.errorbar(s, mono_xi,
-        yerr=mono_xi_err,color='green', label='Data',marker='x',linestyle='None',capsize=3)
+        plt.errorbar(s_data, mono_data,
+        yerr=mono_data_err,color='green', label='Data',marker='x',linestyle='None',capsize=3)
         
         #gaussian fit plot
         #gaussian fitting for the 1d correlation of the bao signal
-        gauss_fit,mu,sigma = gaussian_data(  distances=svalue, 
-                                    correlation=xi,
-                                    yerror=mono_xi_err, 
-                                    initial_amplitude=0.005, 
-                                    initial_mean=self.BAO.value, 
-                                    initial_stddev=5)
-        plt.scatter(s_plot, gauss_fit, color='red', 
-        label=f'Gaussian Fit, μ={mu[0]:.2f} +/- {mu[1]:.2f} Mpc, σ={sigma[0]:.2f} +/- {sigma[1]:.2f}Mpc')
-        
+        gaussian_results = self.fit.gaussian(
+                                    s_data=s_data.value, 
+                                    mono_data=mono_data,
+                                    mono_data_err=mono_data_err, 
+                                    init_amplitude=0.005, 
+                                    init_mean=self.BAO.value, 
+                                    init_stddev=5
+                                    )
+        if gaussian_results["fit"] is not None and self.cfg.plotting.fit_gaussian:
+            gauss_fit=gaussian_results["fit"]
+            gauss_mu=(gaussian_results["mu"],gaussian_results["mu_err"])
+            gauss_sigma=(gaussian_results["sigma"],gaussian_results["sigma_err"])
 
+            plt.scatter(s_data, gauss_fit, color='red', 
+            label=f'Gaussian Fit, μ={gauss_mu[0]:.2f} +/- {gauss_mu[1]:.2f} Mpc, σ={gauss_sigma[0]:.2f} +/- {gauss_sigma[1]:.2f}Mpc')
         
-        plt.xlabel(f"s [{self.s.units}]")
+        else:
+            print("No fit for the gaussian.")
+        
+        # ---template ----
+        template_no_shift_results=self.fit.template_no_shift(
+            s_data=s_data.value, 
+            mono_data=mono_data, 
+            mono_data_err=mono_data_err,
+            include_nuissance=self.cfg.plotting.include_nuissance, 
+            poly_order=self.cfg.plotting.nuissance_poly_order
+            )
+        
+        #no shift
+        if template_no_shift_results["fit"] is not None and self.cfg.plotting.fit_noshift:  
+            fit_no_shift=template_no_shift_results["fit"]
+            chi2_no_shift=template_no_shift_results["chi2"]
+            
+            plt.plot(s_data,fit_no_shift,
+                    color="red",
+                    label=f"template with NO shift,chi:{chi2_no_shift:.2f}")
+
+        else:
+            print("No fit for the template with no shift.")
+        #with shift  
+        template_with_shift_results=self.fit.template_with_shift(
+            s_data=s_data.value, 
+            mono_data=mono_data, 
+            mono_data_err=mono_data_err,
+            include_nuissance=self.cfg.plotting.include_nuissance, 
+            poly_order=self.cfg.plotting.nuissance_poly_order
+            )
+        
+        if template_with_shift_results["fit"] is not None and self.cfg.plotting.fit_shift:
+            fit_with_shift=template_with_shift_results["fit"]
+            chi2_with_shift=template_with_shift_results["chi2"]
+            self.alpha_with_shift=(template_with_shift_results["alpha"],
+                            template_with_shift_results["alpha_err"])
+        
+        
+            plt.plot(s_data,fit_with_shift,
+                    color="orange",
+        label=f"template with shift,chi:{chi2_with_shift:.2f},alpha:{self.alpha_with_shift[0]:.3f}")
+        
+        else:
+            print("No fit for the template with shift.")
+
+
+
+        plt.xlabel(f"s [{self.s_data.units}]")
         plt.ylabel("ξ_0(s)")
         plt.title("Monopole ξ_0")
         plt.legend()
         #plotting
         filename_plot=str(self.filename)
-        filename_plot=filename_plot.replace('.hdf5','_monopole.png')
+        filename_plot=filename_plot.replace('.hdf5','_mono.png')
         plt.tight_layout()
         plt.savefig(filename_plot, dpi=300)
         plt.close()
@@ -239,27 +336,27 @@ class correlation_plotter:
     def _plot_quadrupole(self):
         """monopole of the correlation"""
 
-        s = self.s[self.mask_BAO] 
-        quad_xi = self.quad_xi[self.mask_BAO]
-        quad_xi_err=self.quad_xi_err[self.mask_BAO] 
+        s = self.s_data[self.mask_BAO] 
+        quad_data = self.quad_data[self.mask_BAO]
+        quad_data_err=self.quad_data_err[self.mask_BAO] 
         
         
         plt.figure(figsize=(8,6))
-        #plot expected bao position with a vline
-        plt.axvline(self.BAO.value, color='orange',
-         linestyle='--', label=f'Expected BAO Position={self.BAO.value:.1f} {self.BAO.units}')
         #errorbar plot of the data
-        plt.errorbar(s, quad_xi,
-        yerr=quad_xi_err,color='green', label='Data',marker='x',linestyle='None',capsize=3)
+        plt.errorbar(s, quad_data,
+        yerr=quad_data_err,color='green', label='Data',marker='x',linestyle='None',capsize=3)
+        #template
+        #plt.plot(self.s_template, self.quad_template,color="black",label="template")
+        #rough mean and stddev of the quadrupole array in the bao region, simple std
+        self.mu_quad,self.std_quad=np.average(quad_data,weights=1/quad_data_err**2),np.std(quad_data)
         
-        
-        plt.xlabel(f"s [{self.s.units}]")
+        plt.xlabel(f"s [{self.s_data.units}]")
         plt.ylabel("ξ_2(s)")
         plt.title("Quadrupole ξ_2")
         plt.legend()
         #plotting
         filename_plot=str(self.filename)
-        filename_plot=filename_plot.replace('.hdf5','_quadrupole.png')
+        filename_plot=filename_plot.replace('.hdf5','_quad.png')
         plt.tight_layout()
         plt.savefig(filename_plot, dpi=300)
         plt.close()

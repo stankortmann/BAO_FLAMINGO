@@ -95,8 +95,8 @@ class correlation_tools:
         
         # calculate survey volume between inner and outer edges of the redshift bin and store it
         volume =area_sr.value * (self.cosmo.outer_edge_bin**3 - self.cosmo.inner_edge_bin**3) / 3
-        self.survey_volume = volume.to(u.Mpc**3) #only a check
-        print(f"[RANK {self.rank_id}]percentage of total box surveyed: {(self.survey_volume.value/(self.cosmo.box_size**3))/100} %")
+        self.survey_volume = volume.to(u.Gpc**3) #easier to see
+        print(f"[RANK {self.rank_id}]: Percentage of total box surveyed: {(self.survey_volume/(self.cosmo.box_size**3))*100} %")
           
 
 
@@ -217,7 +217,8 @@ class correlation_tools:
 
         # Count total number of NaNs
         num_nans = np.sum(nan_mask)
-        print(f"[RANK {self.rank_id}] Number of bins that are empty:", num_nans)
+        if num_nans>0:
+            print(f"[RANK {self.rank_id}] Number of bins that are empty:", num_nans)
         
         self.xi= xi #(ns, nmu) array
         self.cov= cov #(ns*nmu, ns*nmu) array

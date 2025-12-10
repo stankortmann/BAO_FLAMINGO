@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import scipy.spatial as ss
 from scipy.integrate import quad
 from astropy.constants import c
@@ -10,17 +11,26 @@ import astropy.units as au
 
 
 class cosmo_tools:
+    
     def __init__(self,
     box_size,
     constants,
     redshift,
-    redshift_bin_width):
+    redshift_bin_width,
+    update=None
+    ):
+        self.constants = constants
+        update = {} if update is None else update
         #for colossus cosmology class
         if constants.name is not None:
             self.name=constants.name
         else: #for the swiftsimio cosmology class
             self.name=type(constants).__name__
+        self.name= update.get("name",self.name)
         self.box_size=box_size
+
+        
+        
         #Hubble constant
 
         #strip units if necessary, always in km/s/Mpc for fiducial and real cosmology
@@ -28,31 +38,59 @@ class cosmo_tools:
             self.H0 = constants.H0.value
         else:
             self.H0 = constants.H0
-
-  
+        self.H0= update.get("H0",self.H0)
         self.h = self.H0 / 100.0
+
         #total matter
-        self.Omega_m = constants.Om0
-        self.Omh2 = self.Omega_m * self.h**2
+        self.Om0 = constants.Om0
+        self.Om0= update.get("Om0",self.Om0)
+        self.Omh2 = self.Om0 * self.h**2
+
         #baryons
-        self.Omega_b = constants.Ob0
-        self.Ombh2 = self.Omega_b * self.h**2
+        self.Ob0 = constants.Ob0
+        self.Ob0= update.get("Ob0",self.Ob0)
+        self.Obh2 = self.Ob0 * self.h**2
+
+        #CDM
+        self.Oc0= self.Om0-self.Ob0
+        self.Oc0= update.get("Oc0",self.Oc0)
+        self.Och2= self.Oc0 * self.h**2
+
         #dark energy
-        self.Omega_lambda = constants.Ode0
-        #cmb
+        self.Ode0 = constants.Ode0
+        self.Ode0= update.get("Ode0",self.Ode0)
+        if hasattr(constants, "w0"):
+            self.w0=constants.w0
+            self.w0= update.get("w0",self.w0)
+        if hasattr(constants, "wa"):
+            self.wa=constants.wa
+            self.wa= update.get("wa",self.wa)
+
+        #CMB
         if isinstance(constants.Tcmb0, au.quantity.Quantity):
-            self.Tcmb = constants.Tcmb0.value
+            self.Tcmb0 = constants.Tcmb0.value
         else:
-            self.Tcmb = constants.Tcmb0
+            self.Tcmb0 = constants.Tcmb0
+        self.Tcmb0= update.get("Tcmb0",self.Tcmb0)
+
         #neutrinos
         self.Neff = constants.Neff
-       
+        self.Neff= update.get("Neff",self.Neff)
+
+        if hasattr(constants,"Onu0"):
+            self.Onu0=constants.Onu0
+            self.Onu0= update.get("Onu0",self.Onu0)
+            self.Onuh2=self.Onu0*self.h**2
+        if hasattr(constants,"nmassivenu"):
+            self.nmassivenu=constants.nmassivenu
+            self.nmassivenu= update.get("nmassivenu",self.nmassivenu)
+
         #radiation
-        self.Omega_gamma=2.472e-5 * (self.Tcmb / 2.7255)**4 /(self.h)**2
-        self.Omega_r = self.Omega_gamma * (1.0 + 0.2271 * self.Neff)
-        #curvature
+        self.Omega_gamma=2.472e-5 * (self.Tcmb0 / 2.7255)**4 /(self.h)**2
+        self.Or0 = self.Omega_gamma * (1.0 + 0.2271 * self.Neff)
         
-        self.Omega_k = 1.0 - self.Omega_m - self.Omega_r - self.Omega_lambda
+        #curvature
+        self.Ok0 = 1.0 - self.Om0 - self.Or0 - self.Ode0
         
         #constants
         self.c_km_s = c.to('km/s').value
@@ -78,9 +116,27 @@ class cosmo_tools:
         self._observer_position()
 
 
-        
-
-
+    # ----------------------------- Update method -----------------------------
+    def update(self,params:dict =None, **kwargs):
+        """
+        Update one or more cosmological parameters and recalc everything.
+        Example: cosmo.update(H0=70, Om0=0.31)
+        """
+        # store overrides
+        new_update={}
+        # combine dict and kwargs
+        if params is not None:
+            new_update.update(params)
+        new_update.update(kwargs)
+        #make a new init
+        new_init = type(self)(
+            box_size=self.box_size,
+            constants=self.constants,
+            redshift=self.redshift,
+            redshift_bin_width=self.bin_width,
+            update=new_update)
+        return new_init
+    
 
     
         #internal functions for distances, do not change z here!!
@@ -88,10 +144,10 @@ class cosmo_tools:
         """Dimensionless Hubble parameter E(z) = H(z)/H0."""
         
         return np.sqrt(
-            self.Omega_m * (1 + z)**3 +
-            self.Omega_r * (1 + z)**4 +
-            self.Omega_lambda +
-            self.Omega_k * (1 + z)**2
+            self.Om0 * (1 + z)**3 +
+            self.Or0 * (1 + z)**4 +
+            self.Ode0 +
+            self.Ok0 * (1 + z)**2
         )
 
     @staticmethod
@@ -132,6 +188,7 @@ class cosmo_tools:
         for zi in z:
             integral, _ = quad(lambda zp: 1.0 / self.E(zp), 0.0, zi, epsrel=1e-6)
             Dc_i = (self.c_km_s / self.H0) * integral
+            
             Dc_list.append(Dc_i)
 
         Dc_array = np.array(Dc_list) * u.Mpc
@@ -162,11 +219,11 @@ class cosmo_tools:
         b1 = 0.313 * self.Omh2**(-0.419) * (1 + 0.607 * self.Omh2**0.674)
         b2 = 0.238 * self.Omh2**0.223
         z_drag = 1291 * self.Omh2**0.251 / (1 + 0.659 * self.Omh2**0.828) *\
-         (1 + b1 * self.Ombh2**b2)
+         (1 + b1 * self.Obh2**b2)
 
         # --- Sound horizon integral ---
         def R_of_z(zp):
-            return (3.0 * self.Omega_b) / (4.0 * self.Omega_gamma) / (1.0 + zp)
+            return (3.0 * self.Ob0) / (4.0 * self.Omega_gamma) / (1.0 + zp)
 
         def c_s(zp):  
             return self.c_km_s / np.sqrt(3.0 * (1.0 + R_of_z(zp)))
@@ -180,7 +237,7 @@ class cosmo_tools:
     def _comoving_distance_to_redshift(self):
         #builds a mapping of z <--> D_c
         #maybe increase resolution??
-        z_grid = np.linspace(self.min_redshift, self.max_redshift, int(1e6)) 
+        z_grid = np.linspace(self.min_redshift, self.max_redshift, int(1e5)) 
         Dc_grid = np.array([self.comoving_distance(z).value for z in z_grid])  # Mpc
         # ensure monotonic
         assert np.all(np.diff(Dc_grid) > 0)

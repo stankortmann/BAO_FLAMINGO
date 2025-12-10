@@ -8,7 +8,8 @@ class multipole_projector:
     and projects a full 2D covariance to multipoles with errors.
     """
 
-    def __init__(self,xi, cov, mu, s, ell_list=(0, 2), mu_range_minus1_to1=True,regularize=None):
+    def __init__(self,xi, cov, mu, s, ell_list=(0, 2), 
+                mu_range_minus1_to1=True,regularize=None):
         
         self.xi = np.asarray(xi)
         self.cov = np.asarray(cov)
@@ -19,10 +20,9 @@ class multipole_projector:
         self.ell_list = ell_list
         self.mu_range_minus1_to1 = mu_range_minus1_to1
         self.regularize = regularize
-        self.dmu = self._compute_dmu(self.mu)
-
+        
         #running the pipeline inside the class init function
-
+        self._compute_dmu()
         self._build_P() #build projection matrix P of all the multipoles you have selected 
         self._project_covariance() #project the full covariance to multipole covariance
         self._get_multipoles_with_errors()#actually compute the multipoles and their errors (1 sigma)  
@@ -36,12 +36,12 @@ class multipole_projector:
         if self.mu.size == 1:
             raise ValueError("Cannot infer dmu with a single μ bin.")
 
-        dmu = np.empty_like(mu)
+        dmu = np.empty_like(self.mu)
         dmu[0] = self.mu[1] - self.mu[0]
         dmu[-1] = self.mu[-1] - self.mu[-2]
 
-        if mu.size > 2:
-            dmu[1:-1] = 0.5 * (mu[2:] - mu[:-2])
+        if self.mu.size > 2:
+            dmu[1:-1] = 0.5 * (self.mu[2:] - self.mu[:-2])
         
         self.dmu = dmu
 
@@ -58,12 +58,12 @@ class multipole_projector:
 
         P = np.zeros((Nout, Nin), dtype=float)
 
-        for i_s in range(Ns):
-            col_start = i_s * Nmu
+        for i_s in range(self.Ns):
+            col_start = i_s * self.Nmu
 
             for ell_idx, ell in enumerate(self.ell_list):
 
-                row = ell_idx * Ns + i_s
+                row = ell_idx * self.Ns + i_s
 
                 if ell == 0:
                     # monopole weights
@@ -73,20 +73,22 @@ class multipole_projector:
                         w = self.dmu
 
                 elif ell == 2:
-                    P2 = 0.5 * (3.0 * mu**2 - 1.0)
+                    #quadrupole
+                    P2 = 0.5 * (3.0 * self.mu**2 - 1.0)
                     if self.mu_range_minus1_to1:
                         w = 0.5 * 5.0 * P2 * self.dmu
                     else:
                         w = 5.0 * P2 * self.dmu
 
                 else:
-                    Pl = legval(mu, [0]*ell + [1])
+                    #higher multipoles
+                    Pl = legval(self.mu, [0]*ell + [1])
                     if self.mu_range_minus1_to1:
-                        w = 0.5 * (2*ell + 1) * Pl * dmu
+                        w = 0.5 * (2*ell + 1) * Pl * self.dmu
                     else:
-                        w = (2*ell + 1) * Pl * dmu
+                        w = (2*ell + 1) * Pl * self.dmu
 
-                P[row, col_start:col_start + Nmu] = w
+                P[row, col_start:col_start + self.Nmu] = w
 
         self.P = P
 
@@ -125,8 +127,8 @@ class multipole_projector:
         blocks = {}
 
         for idx, ell in enumerate(self.ell_list):
-            start = idx * Ns
-            stop = (idx + 1) * Ns
+            start = idx * self.Ns
+            stop = (idx + 1) * self.Ns
             block = C_multi[start:stop, start:stop]
 
             xi_errs[ell] = np.sqrt(np.clip(np.diag(block), 0.0, None))
@@ -138,12 +140,12 @@ class multipole_projector:
                 for j, ell_j in enumerate(self.ell_list):
                     if j <= i:
                         continue
-                    si, ei = i*Ns, (i+1)*Ns
-                    sj, ej = j*Ns, (j+1)*Ns
+                    si, ei = i*self.Ns, (i+1)*self.Ns
+                    sj, ej = j*self.Ns, (j+1)*self.Ns
                     blocks[f'ell{ell_i}_ell{ell_j}_cov'] = C_multi[si:ei, sj:ej]
                     blocks[f'ell{ell_j}_ell{ell_i}_cov'] = blocks[f'ell{ell_i}_ell{ell_j}_cov'].T
 
-        self.C_multi, self.xi_errs, self.blocks, self.P = C_multi, xi_errs, blocks, P
+        self.C_multi, self.xi_errs, self.blocks = C_multi, xi_errs, blocks
 
     def _get_multipoles_with_errors(self):
         """
@@ -178,7 +180,7 @@ class multipole_projector:
             xi_ell = xi_multi[start:stop]
 
             # σ_ell(s) from diagonal blocks
-            sigma_ell = xi_errs[ell]
+            sigma_ell = self.xi_errs[ell]
 
             multipoles[ell] = xi_ell
             errors[ell] = sigma_ell

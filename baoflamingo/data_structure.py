@@ -11,9 +11,14 @@ class Paths:
     output_directory:str
 
 @dataclass
+class Monitoring:
+    cpu_ram_monitor: bool
+    monitor_interval: int
+
+@dataclass
 class Slicing:
     redshift_bin_width: float
-    
+   
 
 @dataclass
 class RandomCatalog:
@@ -47,8 +52,14 @@ class Plotting:
     autocovariance_2d: bool
     covariance_regularization: Union[float, None]
 
-    monopole:bool
-    quadrupole:bool
+    monopole: bool
+    fit_gaussian: bool
+    fit_noshift: bool
+    fit_shift: bool
+    include_nuissance: bool
+    nuissance_poly_order: int
+
+    quadrupole: bool
 
 @dataclass
 class Statistics:
@@ -60,19 +71,20 @@ class Fiducial:
     cosmology: Union[str,list[str]]
     manual_cosmo : bool # enable manual cosmology grid, if off the cosmologies are selected in the above cosmologies
 
-    # Explicit ranges
-    omega_m_min : float
-    omega_m_max : float
-    omega_lambda_min : float
-    omega_lambda_max : float
+    parameters_to_save: list[str]
+    
+    parameters_mcmc: list[str] 
+    para_1_range: list[float]
+    para_2_range: list[float]
+    points_per_para: int
 
-    n_points : float  # number of points per axis
 
 
 #important class that orders all the configurations
 @dataclass
 class Config:
     paths: Paths
+    monitoring: Monitoring
     slicing: Slicing
     random_catalog: RandomCatalog
     filters: Filters
