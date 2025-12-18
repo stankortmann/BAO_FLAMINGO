@@ -4,10 +4,15 @@ paths:
   redshift_file: output_list.txt #do not touch!
 
   #only thouch these parts below!!
-  simulation: L1000N1800/HYDRO_LOW_SIGMA8
+  simulation: L1000N1800/HYDRO_FIDUCIAL
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: results_low_sigma8_noerror #full path if necessary
+  snapshot_number: [63,65,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  output_directory: mcmc_2d_small_patches #full path if necessary
+
+monitoring:
+  cpu_ram_monitor: off
+  monitor_interval: 240 #in seconds
+
 
 slicing:
   redshift_bin_width: 0.1 #delta_z of the complete bin, will mark the shell volume
@@ -39,30 +44,54 @@ plotting:
   mu_max: 1  #cosine
 
 #--- s ---
-  s_bins: 40
+  s_bins: 30
   s_min: 100  #Mpc
   s_max: 200 #Mpc 
 
 #other settings
   expected_bao_position: 150 #Mpc, to highlight in plots
-  bao_window: 60 #Mpc, window around the expected BAO position to highlight in plots
+  bao_window: 150 #Mpc, window around the expected BAO position to highlight in plots
   plot_bao: off #whether to plot the BAO position or not in the 2d correlation plots
   
   #if you want the plots, set to 'on', else 'off'
   correlation_2d: on
-  variance_2d: on
+  autocovariance_2d: off
+  covariance_regularization: None #regularization factor for the covariance matrix to ensure numerical stability, can be None
   #for either mu or s slices!
-  correlation_1d: on
+  
+  #multipole plots
+  # --- monopole ---
+  monopole: on
+  fit_gaussian: off
+  fit_noshift: off
+  fit_shift: on
+  include_nuissance: on
+  nuissance_poly_order: 2 #sum( a_i x^i ) , with i the order
+
+  # ---quadrupole
+  quadrupole: on
   
 
 statistics:
   n_patches: 100 #jackknife patches
 
 fiducial:
-  cosmology: [millennium, illustris,planck18,bolshoi]
+  # --- Collosus cosmologies ---
+  cosmology: [illustris,planck18]
   #options:
   #'planck18-only', 'planck18', 'planck15-only', 
   #'planck15', 'planck13-only', 'planck13', 'WMAP9-only', 
   #'WMAP9-ML', 'WMAP9', 'WMAP7-only', 'WMAP7-ML', 'WMAP7', 'WMAP5-only', 
   #'WMAP5-ML', 'WMAP5', 'WMAP3-ML', 'WMAP3', 'WMAP1-ML', 'WMAP1', 'illustris', 'bolshoi',
   # 'multidark-planck', 'millennium', 'EdS', 'powerlaw'
+
+  
+  # --- Manual MCMC settings ---
+  manual_cosmo : on # enable manual cosmology grid, if off the cosmologies are selected in the above cosmologies
+ #parameters to save in the output .hdf5 file 
+  parameters_to_save: [Om0,Ob0,H0,Tcmb0,Ode0]
+#which cosmological parameters to vary, options: Om0, Ode0, H0, w0, wa,Ob0, Onu0, Neff
+  parameters_mcmc: [Om0,Ode0] #can be either one or two parameters in a list
+  para_1_range: [0.2,0.4] #range for variable 1
+  para_2_range: [0.6,0.8] #range for variable 2 if needed
+  points_per_para: 10 #number of points per variable, total points = points_per_para^n_variables

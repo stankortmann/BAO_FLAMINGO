@@ -12,7 +12,7 @@ from scipy.ndimage import gaussian_filter1d
 
 
 @njit(parallel=True)
-def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0):
+def cartesian_to_spherical_numba(coords, observer):
     """
     Convert Cartesian (x, y, z) positions to spherical (r, theta, phi)
     relative to a given observer, optionally applying periodic boundaries.
@@ -40,18 +40,10 @@ def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0):
         x, y, z = coords[i, 0], coords[i, 1], coords[i, 2]
 
         
-
-        # shift coordinates randdomly and apply boundary conditions
-        dx = (x - shift[0])%box_size 
-        dy = (y - shift[1])%box_size  
-        dz = (z - shift[2])%box_size 
-
-       
-
         # Shift to be relative to the observer
-        dx = observer[0]-dx
-        dy = observer[1]-dy
-        dz = observer[2]-dz
+        dx = observer[0]-x
+        dy = observer[1]-y
+        dz = observer[2]-z
 
         r = np.sqrt(dx*dx + dy*dy + dz*dz)
         theta = np.arccos(dz / r)  # polar angle [0, pi]
@@ -68,26 +60,81 @@ def cartesian_to_spherical_numba(coords, shift, observer, box_size=1000.0):
 
 class coordinate_tools:
 
-    def __init__(self,cosmology,observer=None,shift=None, rank_id=0):
+    def __init__(self,cosmology,observer=None):
         
         self.box_size=cosmology.box_size.value
         self.complete_sphere=cosmology.complete_sphere
         self.observer=observer
-        self.shift=shift
-        #MPI rank
-        self.rank_id=rank_id
+        
+        
 
     def cartesian_to_spherical(self,coordinates):
-        #this setup to call this inside the class, 
-        #numba functions cannot be inside!
+        
+        #choose random viewing angle
+        directions=['x+','x-','y+','y-','z+','z-']
+        dir_choice=np.random.choice(directions)
+        print("The direction chosen is",dir_choice)
+        #rotate points so they are in (3,N) shape
+        #now rotate according to direction
+        coords_rotated=self.rotate_box(coordinates.T,direction=dir_choice)
+        #now translate and transpose back to (N,3)
+        coords_translated=self.translate(coords_rotated)
+        coords_final=coords_translated.T
+        
         sph_coords=cartesian_to_spherical_numba(
-            coords=coordinates,
-            shift=self.shift,
+            coords=coords_final,
             observer=self.observer,
-            box_size=self.box_size)
+            )
 
         return sph_coords
     
+    @staticmethod
+    def rotate_box(points, direction='x+'):
+        """
+        Rotate points to observe from ±x, ±y, ±z. 
+        Points shape: (3, N)
+        """
+        assert points.shape[0] == 3, "Points must be shape (3,N)"
+        
+        if direction == 'x+':
+            R = np.eye(3)
+        elif direction == 'x-':
+            R = np.diag([-1, 1, 1])
+        elif direction == 'y+':
+            R = np.array([[0, 1, 0],
+                          [-1, 0, 0],
+                          [0, 0, 1]])
+        elif direction == 'y-':
+            R = np.array([[0, -1, 0],
+                          [1, 0, 0],
+                          [0, 0, 1]])
+        elif direction == 'z+':
+            R = np.array([[0, 0, 1],
+                          [0, 1, 0],
+                          [-1,0,0]])
+        elif direction == 'z-':
+            R = np.array([[0, 0, -1],
+                          [0, 1, 0],
+                          [1, 0, 0]])
+        else:
+            raise ValueError("Invalid direction")
+        
+        return R @ points
+
+    # ----------------------
+    # Apply a random translation (periodic)
+    # ----------------------
+    
+    def translate(self,points):
+        """
+        Apply a random translation inside a periodic box.
+        """
+        shift = np.random.uniform(0, self.box_size, size=(3,1))
+        points_trans = (points + shift) % self.box_size
+        return points_trans
+
+
+
     @staticmethod
     def theta_phi_z_to_ra_dec_r(coords, cosmo):
         

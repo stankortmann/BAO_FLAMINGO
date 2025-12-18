@@ -3,8 +3,11 @@ import matplotlib.pyplot as plt
 import unyt as u
 import h5py
 from scipy.interpolate import UnivariateSpline
-
-
+from scipy.stats import norm
+from scipy.interpolate import griddata
+import os
+import corner 
+#own modules
 from baoflamingo.fitting import BAO_fitter
 from baoflamingo.multipole import multipole_projector
 
@@ -102,7 +105,7 @@ class correlation_plotter:
             self.BAO = load_dataset("BAO_distance")
             self.H_z= load_dataset("effective_H_z")
             self.D_a= load_dataset("effective_D_a")
-            print(f"H_z={self.H_z}, D_a={self.D_a}, BAO position={self.BAO}")
+            #print(f"H_z={self.H_z}, D_a={self.D_a}, BAO position={self.BAO}")
 
 
             #template loading
@@ -274,48 +277,53 @@ class correlation_plotter:
         else:
             print("No fit for the gaussian.")
         
-        # ---template ----
-        template_no_shift_results=self.fit.template_no_shift(
-            s_data=s_data.value, 
-            mono_data=mono_data, 
-            mono_data_err=mono_data_err,
-            include_nuissance=self.cfg.plotting.include_nuissance, 
-            poly_order=self.cfg.plotting.nuissance_poly_order
-            )
+        
         
         #no shift
-        if template_no_shift_results["fit"] is not None and self.cfg.plotting.fit_noshift:  
-            fit_no_shift=template_no_shift_results["fit"]
-            chi2_no_shift=template_no_shift_results["chi2"]
-            
-            plt.plot(s_data,fit_no_shift,
-                    color="red",
-                    label=f"template with NO shift,chi:{chi2_no_shift:.2f}")
+        if self.cfg.plotting.fit_noshift:
+            # ---template ----
+            template_no_shift_results=self.fit.template_no_shift(
+                s_data=s_data.value, 
+                mono_data=mono_data, 
+                mono_data_err=mono_data_err,
+                include_nuissance=self.cfg.plotting.include_nuissance, 
+                poly_order=self.cfg.plotting.nuissance_poly_order
+                )
 
-        else:
-            print("No fit for the template with no shift.")
-        #with shift  
-        template_with_shift_results=self.fit.template_with_shift(
-            s_data=s_data.value, 
-            mono_data=mono_data, 
-            mono_data_err=mono_data_err,
-            include_nuissance=self.cfg.plotting.include_nuissance, 
-            poly_order=self.cfg.plotting.nuissance_poly_order
+            if template_no_shift_results["fit"] is not None:  
+                fit_no_shift=template_no_shift_results["fit"]
+                chi2_no_shift=template_no_shift_results["chi2"]
+                
+                plt.plot(s_data,fit_no_shift,
+                        color="red",
+                        label=f"template with NO shift,chi:{chi2_no_shift:.2f}")
+
+            else:
+                print("No fit for the template with no shift.")
+
+        if self.cfg.plotting.fit_shift:
+            #with shift  
+            template_with_shift_results=self.fit.template_with_shift(
+                s_data=s_data.value, 
+                mono_data=mono_data, 
+                mono_data_err=mono_data_err,
+                include_nuissance=self.cfg.plotting.include_nuissance, 
+                poly_order=self.cfg.plotting.nuissance_poly_order
             )
-        
-        if template_with_shift_results["fit"] is not None and self.cfg.plotting.fit_shift:
-            fit_with_shift=template_with_shift_results["fit"]
-            chi2_with_shift=template_with_shift_results["chi2"]
-            self.alpha_with_shift=(template_with_shift_results["alpha"],
-                            template_with_shift_results["alpha_err"])
-        
-        
-            plt.plot(s_data,fit_with_shift,
-                    color="orange",
-        label=f"template with shift,chi:{chi2_with_shift:.2f},alpha:{self.alpha_with_shift[0]:.3f}")
-        
-        else:
-            print("No fit for the template with shift.")
+            
+            if template_with_shift_results["fit"] is not None:
+                fit_with_shift=template_with_shift_results["fit"]
+                chi2_with_shift=template_with_shift_results["chi2"]
+                self.alpha_with_shift=(template_with_shift_results["alpha"],
+                                template_with_shift_results["alpha_err"])
+            
+            
+                plt.plot(s_data,fit_with_shift,
+                        color="orange",
+            label=f"template with shift,alpha:{self.alpha_with_shift[0]:.3f}")
+            
+            else:
+                print("No fit for the template with shift.")
 
 
 
@@ -364,4 +372,254 @@ class correlation_plotter:
         print(f"Quadrupole plot saved to {filename_plot}")
 
 
+
+class posterior_plotter:
+
+    def __init__(self, 
+                redshift,
+                mcmc_list, 
+                outdir=".",
+                use_quad_likelihood=False,
+                true_pars=None):
+        """
+        Parameters
+        ----------
+        mcmc_list : list of dicts
+            Your grid entries containing α_mean, α_std, quad_mean, quad_std, and parameters.
+        outdir : str
+            Directory to save plots
+        use_quad_likelihood : bool
+            If True: include quadrupole likelihood contribution to posterior.
+        true_pars : dict or None
+            Example:
+               {"para": 0.315}              # 1 parameter
+               {"para1": 0.315, "para2": 0.685}   # 2 parameters
+        """
+        self.redshift=redshift
+        self.mcmc_list = mcmc_list
+        self.outdir = outdir
+        self.use_quad = use_quad_likelihood
+        self.true_pars = true_pars
+
+        # infer dimension
+        if "para_value" in mcmc_list[0]:
+            self.ndim = 1
+            self._plot_1d()
+        else:
+            self.ndim = 2
+            self._plot_2d()
+        ("printed all the plots and posterior")
+
+    # ------------------------------------------------------------
+    # Likelihood
+    # ------------------------------------------------------------
+    def _likelihood(self):
+        """Gaussian likelihood from α (and ξ2 if enabled)."""
+
+        # α likelihood
+        
+        L_alpha = np.exp(-0.5 * ((self.alpha - 1) / self.alpha_std)**2)
+
+        if not self.use_quad:
+            return L_alpha
+
+        # Quad likelihood if turned on
+       
+
+        # No model prediction available → use "mean-normalized" deviation
+        L_quad = np.exp(-0.5 * ((self.quad) / self.quad_std)**2)
+
+        return L_alpha * L_quad
+
+    # ------------------------------------------------------------
+    # Compute posterior values for each grid point
+    # ------------------------------------------------------------
+    def _compute_posterior(self):
+        post = np.array(self._likelihood())
+        post /= np.sum(post)  # normalize, might not be smart because of incorrect priors
+    
+        return post
+
+    # ------------------------------------------------------------
+    # Plotting: 1 PARAMETER
+    # ------------------------------------------------------------
+    def _plot_1d(self):
+        self.para_value   = np.array([d["para_value"] for d in self.mcmc_list])
+        self.para_name  = self.mcmc_list[0]["para_name"]
+        
+        self.alpha  = np.array([d["alpha_mean"] for d in self.mcmc_list])
+        self.alpha_std  = np.array([d["alpha_std"]  for d in self.mcmc_list])
+        self.quad   = np.array([d["quad_mean"] for d in self.mcmc_list])
+        self.quad_std  = np.array([d["quad_std"]  for d in self.mcmc_list])
+        
+
+        # -----------------------
+        # α plot
+        # -----------------------
+        plt.figure(figsize=(8,6))
+        plt.errorbar(self.para, self.alpha, 
+        yerr=self.alpha_std, fmt='o', capsize=3
+        )
+        
+        if self.true_pars is not None:
+            plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
+
+        plt.xlabel(self.para_name)
+        plt.ylabel(r"$\alpha$")
+        plt.title(f"Redshift {self.redshift:.2f} – α")
+        
+        plt.savefig(os.path.join(self.outdir, "a-alpha_mcmc.png"), dpi=300)
+        plt.close()
+
+        # -----------------------
+        # Quadrupole plot
+        # -----------------------
+        plt.figure(figsize=(8,6))
+        plt.errorbar(self.para,self.quad, 
+        yerr=self.quad_std, fmt='o', capsize=3)
+
+        if self.true_pars is not None:
+            plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
+
+        plt.xlabel(self.para_name)
+        plt.ylabel(r"Average Quadrupole $\xi_2$")
+        plt.title(f"Redshift {self.redshift:.2f} – Quadrupole")
+        
+        plt.savefig(os.path.join(self.outdir, "a-quad_mcmc.png"), dpi=300)
+        plt.close()
+
+        # -----------------------
+        # Posterior 1D
+        # -----------------------
+        post = self.compute_posterior()
+        sort = np.argsort(self.para)
+
+        plt.figure(figsize=(8,6))
+        plt.plot(para[sort], post[sort], "-o")
+        if self.true_pars is not None:
+            plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
+
+        plt.xlabel(pname)
+        plt.ylabel("Posterior")
+        plt.title(f"Redshift {self.redshift:.2f} – 1D Posterior")
+        
+        plt.savefig(os.path.join(self.outdir, "a-posterior_1d.png"), dpi=300)
+        plt.close()
+
+
+
+    # ------------------------------------------------------------
+    # Plotting: 2 PARAMETERS
+    # ------------------------------------------------------------
+    def _plot_2d(self):
+        self.para1_value  = np.array([d["para1_value"] for d in self.mcmc_list])
+        self.para2_value  = np.array([d["para2_value"] for d in self.mcmc_list])
+        self.para1_name = self.mcmc_list[0]["para1_name"]
+        self.para2_name = self.mcmc_list[0]["para2_name"]
+        
+        self.alpha  = np.array([d["alpha_mean"] for d in self.mcmc_list])
+        self.alpha_std  = np.array([d["alpha_std"] for d in self.mcmc_list])
+
+        self.quad   = np.array([d["quad_mean"] for d in self.mcmc_list])
+        self.quad_std   = np.array([d["quad_std"] for d in self.mcmc_list])        
+
+        # ============================================================
+        # α–1 scatter heatmap
+        # ============================================================
+        plt.figure(figsize=(8,6))
+        sc = plt.scatter(self.para1_value, self.para2_value, 
+                        c=self.alpha-1, cmap="seismic", 
+                        s=120, vmin=-0.1, vmax=0.1)
+        plt.colorbar(sc, label=r"$\alpha - 1$")
+
+        if self.true_pars is not None:
+            plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
+            plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
+            plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
+                        s=160, color="black", marker="x")
+
+        plt.xlabel(self.para1_name)
+        plt.ylabel(self.para2_name)
+        plt.title(f"Redshift {self.redshift:.2f} – α Contour")
+        
+        plt.savefig(os.path.join(self.outdir, "a-alpha_contour.png"), dpi=300)
+        plt.close()
+
+        # ============================================================
+        # Quadrupole scatter heatmap
+        # ============================================================
+        plt.figure(figsize=(8,6))
+        sc = plt.scatter(self.para1_value, self.para2_value, 
+                         c=self.quad, cmap="Reds", 
+                         s=120, 
+                         vmin=np.min(self.quad),
+                         vmax=np.mean(self.quad))
+        plt.colorbar(sc, label=r"Quadrupole $\xi_2$")
+
+        if self.true_pars is not None:
+            plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
+            plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
+            plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
+                        s=160, color="black", marker="x")
+
+        plt.xlabel(self.para1_name)
+        plt.ylabel(self.para2_name)
+        plt.title(f"Redshift {self.redshift:.2f} – Quadrupole")
+        
+        plt.savefig(os.path.join(self.outdir, "a-quad_contour.png"), dpi=300)
+        plt.close()
+
+        # ============================================================
+        # Posterior 2D contour
+        # ============================================================
+        posterior = self._compute_posterior()
+
+        # interpolate to grid for smooth contour
+        grid_x, grid_y = np.mgrid[
+            self.para1_value.min():self.para1_value.max():200j,
+            self.para2_value.min():self.para2_value.max():200j
+        ]
+        grid_posterior = griddata((self.para1_value, self.para2_value), 
+                posterior, (grid_x, grid_y), method="cubic")
+
+        plt.figure(figsize=(8,6))
+        cs = plt.contourf(grid_x, grid_y, grid_posterior, 40, cmap="viridis")
+        plt.colorbar(cs, label="Posterior")
+
+        if self.true_pars is not None:
+            plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
+                        s=160, color="white", marker="x")
+
+        plt.xlabel(self.para1_name)
+        plt.ylabel(self.para2_name)
+        plt.title(f"Redshift {self.redshift:.2f} – Posterior 2D")
+        
+        plt.savefig(os.path.join(self.outdir, "a-posterior_2d_smoothed.png"), dpi=300)
+        plt.close()
+
+        # ============================================================
+        # Corner plot
+
+        samples = np.vstack([self.para1_value, self.para2_value]).T
+        corner_posterior = posterior
+        smooth=0.2
+        
+
+
+        fig = corner.corner(
+            data=samples,
+            weights=corner_posterior,
+            labels=[self.para1_name, self.para2_name],
+            levels=[0.68, 0.95],
+            plot_contours=True,
+            fill_contours=True,
+            color="C1",
+            show_titles=True,
+            smooth=smooth,
+            #histogram settings,
+            bins=[len(np.unique(self.para1_value)), len(np.unique(self.para2_value))],
+            hist_kwargs={"density": True, "align": "mid"}  # ensures histogram centers match sample locations
+        )
+
+        fig.savefig(os.path.join(self.outdir,"a-corner_posterior.png"), dpi=300)
 

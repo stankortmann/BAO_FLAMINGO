@@ -87,7 +87,7 @@ class correlation_tools:
         else:
             # Spherical cap area in steradians
             area_sr = 2 * self.cosmo.max_angle.value \
-            * (1 - np.cos(self.cosmo.max_angle.value)) * u.sr
+            * (2*np.sin(self.cosmo.max_angle.value)) * u.sr
         
         # Convert steradians to square degrees
         self.survey_area = area_sr.to(u.deg**2)
@@ -96,7 +96,8 @@ class correlation_tools:
         # calculate survey volume between inner and outer edges of the redshift bin and store it
         volume =area_sr.value * (self.cosmo.outer_edge_bin**3 - self.cosmo.inner_edge_bin**3) / 3
         self.survey_volume = volume.to(u.Gpc**3) #easier to see
-        print(f"[RANK {self.rank_id}]: Percentage of total box surveyed: {(self.survey_volume/(self.cosmo.box_size**3))*100} %")
+        self.survey_total_volume_percent=((self.survey_volume/(self.cosmo.box_size**3)).value)*100
+        print(f"[RANK {self.rank_id}]: Percentage of total box surveyed: {self.survey_total_volume_percent} %")
           
 
 

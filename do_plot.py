@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 # Our own modules
 import baoflamingo.data_structure as ds
 from baoflamingo.pipeline_single import run_pipeline_single
-from baoflamingo.plotting import correlation_plotter 
+from baoflamingo.plotting import correlation_plotter
+from baoflamingo.plotting import posterior_plotter 
 
 
 
@@ -92,7 +93,7 @@ if __name__ == "__main__":
                 )
 
                 #entering the values of the template with shift method
-                if cfg.fiducial.manual_cosmoand hasattr(plotter, "alpha_with_shift"):
+                if cfg.fiducial.manual_cosmo and hasattr(plotter, "alpha_with_shift"):
                     name=plotter.name.decode()
                     n_parameters=len(cfg.fiducial.parameters_mcmc)
                     
@@ -112,7 +113,7 @@ if __name__ == "__main__":
                             if entry["alpha_mean"] is not None and entry["alpha_std"]/entry["alpha_mean"] < relative_error:
                                 mcmc_list.append(entry)
                         if name == "w0waCDM":
-                            cosmo_real_para_value=float(plotter.para_value)
+                            true_pars={"para":float(plotter.para1_value)}
                             
                     elif n_parameters==2 :
                         cosmo_real_para1_value=None
@@ -134,163 +135,17 @@ if __name__ == "__main__":
                                 mcmc_list.append(entry)
 
                         if name == "w0waCDM":
-                            cosmo_real_para1_value=float(plotter.para1_value)
-                            cosmo_real_para2_value=float(plotter.para2_value)
+                            true_pars={"para1":float(plotter.para1_value), \
+                                        "para2":float(plotter.para2_value)}
 
             if cfg.fiducial.manual_cosmo:
-                #all files in the redshift/runxxx are added, so now MCMC
-               
-                if n_parameters==1:
-                    
-
-                    # ---- Alpha plot ----
-                    para = np.array([d["value_para"] for d in mcmc_list])
-                    alpha = np.array([d["alpha_mean"] for d in mcmc_list])
-                    alpha_err = np.array([d["alpha_std"] for d in mcmc_list])
-                    plt.figure(figsize=(8,6))
-                    plt.errorbar(
-                                x=para, 
-                                y=alpha,
-                                yerr=alpha_err, 
-                                fmt='o', capsize=3, 
-                                label='Alpha with shift'
-                                )
-                    if real_cosmo_para_value is not None:
-                        plt.axvline(cosmo_real_para_value, color="black", 
-                        linestyle="--", linewidth=0.2,
-                        label="Real cosmology")
-                    variable=mcmc_list[0]["para_name"]
-                    plt.xlabel(variable)  # parameter name, e.g. "Om0"
-                    plt.ylabel(r'$\alpha$')
-                    plt.title(f'Redshift {redshift:.2f}')  # replace redshift with your value
-                    plt.grid(True)
-                    plt.legend()
-                    # --- Save figure ---
-                    filename_mcmc=os.path.join(full_run_path,"alpha_mcmc.png")
-                    plt.savefig(filename_mcmc, 
-                    dpi=300)  # PNG file
-                    
-                    plt.close()
-                    
-
-
-                    # ---- Average Quadrupole plot ----
-                    para = np.array([d["value_para"] for d in mcmc_list])
-                    quad_mean = np.array([d["quad_mean"] for d in mcmc_list])
-                    quad_std = np.array([d["quad_std"] for d in mcmc_list])
-                    plt.figure(figsize=(8,6))
-                    plt.errorbar(
-                                x=para, 
-                                y=quad_mean,
-                                yerr=quad_std, 
-                                fmt='o', capsize=3, 
-                                label='quadrupole mean'
-                                )
-                    if real_cosmo_para_value is not None:
-                        plt.axvline(cosmo_real_para_value, color="black", 
-                        linestyle="--", linewidth=0.2,
-                        label="Real cosmology")
-                    variable=mcmc_list_sorted[0]["para_name"]
-                    plt.xlabel(variable)  # parameter name, e.g. "Om0"
-                    plt.ylabel(r'Average Quadrupole ξ₂')
-                    plt.title(f'Redshift {redshift:.2f}')  # replace redshift with your value
-                    plt.grid(True)
-                    plt.legend()
-                    # --- Save figure ---
-                    filename_mcmc=os.path.join(full_run_path,"avg_quad.png")
-                    plt.savefig(filename_mcmc, 
-                    dpi=300)  # PNG file
-                    
-                    plt.close()
-
-
-                    print(f"For redshift {redshift} the MCMC plot of the variable {variable} is plotted.")
-                    
-                if n_parameters==2:
-                    # ---- Alpha contour plot ----
-                    para1 = np.array([d["para1_value"] for d in mcmc_list])
-                    para2 = np.array([d["para2_value"] for d in mcmc_list])
-                    alpha = np.array([d["alpha_mean"] for d in mcmc_list])
-                    alpha_err = np.array([d["alpha_std"] for d in mcmc_list])
-                    
-                    plt.figure(figsize=(8,6))
-                    sc = plt.scatter(
-                                x=para1, 
-                                y=para2, 
-                                c=alpha-1,
-                                vmin=-0.1,
-                                vmax=0.1, 
-                                s=100, 
-                                cmap='seismic', 
-                                label='Alpha with shift'
-                                )
-                    plt.colorbar(sc, label=r'$\alpha-1$')
-                    if cosmo_real_para1_value is not None:
-                        plt.axvline(cosmo_real_para1_value, color="black",
-                                     linestyle="--", linewidth=0.5)
-
-                    if cosmo_real_para2_value is not None:
-                        plt.axhline(cosmo_real_para2_value, color="black", 
-                                        linestyle="--", linewidth=0.5)
-
-                    plt.scatter(cosmo_real_para1_value, cosmo_real_para2_value, 
-                                color="black", s=150, marker="x", label="Real cosmology")
-
-                    variable1=mcmc_list[0]["para1_name"]
-                    variable2=mcmc_list[0]["para2_name"]
-                    plt.xlabel(variable1)  # parameter name, e.g. "Om0"
-                    plt.ylabel(variable2)  # parameter name, e.g. "Ode0"
-                    plt.title(f'Redshift {redshift:.2f}')  # replace redshift with your value
-                    plt.grid(True)
-                    # --- Save figure ---
-                    filename_mcmc=os.path.join(full_run_path,"alpha_mcmc_contour.png")
-                    plt.savefig(filename_mcmc, 
-                    dpi=300)  # PNG file
-                    
-                    plt.close()
-                    
-                    print(f"For redshift {redshift} the MCMC contour plot of the variables {variable1} and {variable2} is plotted.")
-
-                    # ---- Average Quadrupole contour plot ----
-                    para1 = np.array([d["para1_value"] for d in mcmc_list])
-                    para2 = np.array([d["para2_value"] for d in mcmc_list])
-                    quad_mean = np.array([d["quad_mean"] for d in mcmc_list])
-                    quad_std = np.array([d["quad_std"] for d in mcmc_list]) 
-
-                    plt.figure(figsize=(8,6))
-                    sc = plt.scatter(
-                                x=para1, 
-                                y=para2, 
-                                c=quad_mean, 
-                                s=100, 
-                                vmin=np.min(quad_mean),
-                                vmax=np.mean(quad_mean),
-                                cmap='Reds', 
-                                label='Average Quadrupole'
-                                )
-                    plt.colorbar(sc, label='Average Quadrupole ξ₂')
-                    if cosmo_real_para1_value is not None:
-                        plt.axvline(cosmo_real_para1_value, color="black", 
-                                linestyle="--", linewidth=0.5)
-
-                    if cosmo_real_para2_value is not None:
-                        plt.axhline(cosmo_real_para2_value, color="black", 
-                                linestyle="--", linewidth=0.5)
-
-                    plt.scatter(cosmo_real_para1_value, cosmo_real_para2_value, 
-                                color="black", s=150, marker="x", label="Real cosmology")
-                    variable1=mcmc_list[0]["para1_name"]
-                    variable2=mcmc_list[0]["para2_name"]
-                    plt.xlabel(variable1)  # parameter name, e.g. "Om0"
-                    plt.ylabel(variable2)  # parameter name, e.g. "Ode0"
-                    plt.title(f'Redshift {redshift:.2f}')  # replace redshift with your value
-                    plt.grid(True)
-                    # --- Save figure ---
-                    filename_mcmc=os.path.join(full_run_path,"avg_quad_contour.png")
-                    plt.savefig(filename_mcmc, 
-                    dpi=300)  # PNG file    
-                    plt.close()
-                    
+                posterior_plotter( 
+                redshift=redshift,
+                mcmc_list=mcmc_list, 
+                outdir=full_run_path,
+                use_quad_likelihood=True,
+                true_pars=true_pars
+                )
                 
         print("\nAll snapshots processed successfully.")
 

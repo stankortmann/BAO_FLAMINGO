@@ -91,7 +91,7 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         
         print(f"The size of the box is {box_size:.2f}")
         centre = np.array([box_size.value / 2] * 3)
-        safe_offset= 5*u.Mpc #away from the box edge to avoid boundary issues
+        
         
         cosmo_real = cosmo_tools(
             box_size=box_size,
@@ -109,7 +109,7 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         # --- Observer position ---
         if cosmo_real.complete_sphere:
             
-            shift = np.random.uniform(-0.5*box_size.value, 0.5*box_size.value, size=3)
+            
             
             observer = centre.copy()
             
@@ -119,11 +119,12 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         
         else:
             
-            shift = np.random.uniform(-0.5*box_size.value, 0.5*box_size.value, size=3)
+            
             #we have to do extra slicing with this one!
             observer = centre.copy()
             #x position so it is 'safe_offset' away from the 'wall' of the box
             #and in the middle of the y and z directions
+            safe_offset= 1*u.Mpc #away from the box edge to avoid boundary issues
             observer[0] = cosmo_real.outer_edge_bin.value + safe_offset.value
 
             #testing if the partial slice is possible due to limitations of the box size
@@ -145,8 +146,6 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         coordinates = coordinate_tools(
             cosmology=cosmo_real,
             observer=observer,
-            shift=shift,
-            rank_id=mpi_rank
         )
 
 
@@ -275,17 +274,13 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
 
     # each rank builds its OWN cosmology objects
     local_cosmo_list = []
-    #add the real cosmology to the root, might be useful to add to the 
-    # rank with the least amount of cosmologies later on??
-    if mpi_rank == 0:
+    #add the real cosmology to the last rank, This one will always have less cosmologies to process
+    if mpi_rank == mpi_size-1:
         local_cosmo_list.append(cosmo_real)
     for p in local_param_dicts:
         cosmo_new = cosmo_real.update(params=p)
         local_cosmo_list.append(cosmo_new)
 
-    #This is a check to see how many cosmologies each rank has to process    
-    print(f"{mpi_rank} has {len(local_cosmo_list)} cosmologies to process.")
-    
     
     
     #       --- Correlation ---
@@ -321,8 +316,8 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
             template_xi2 = np.asarray(template_xi_dict[2],dtype=np.float64)  # quadrupole (should be ~0 for ΛCDM)
         
         
-        print(f"Survey density in cosmology {cosmo.name}: {correlation.survey_density}")
-        print(f"Survey volume in cosmology {cosmo.name}: {correlation.survey_volume}")
+        #print(f"Survey density in cosmology {cosmo.name}: {correlation.survey_density}")
+        #print(f"Survey volume in cosmology {cosmo.name}: {correlation.survey_volume}")
         
         
 
@@ -346,7 +341,7 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         #save the filename to the dictionary
         filenames[cosmo.name]=output_filename
 
-        print(f"Rank {mpi_rank} saving results of cosmology {cosmo.name} to:", output_filename)
+        
 
 
         with h5py.File(output_filename, "w") as f:
@@ -388,6 +383,8 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
             f.create_dataset("survey_volume", data=correlation.survey_volume.value)
             f["survey_volume"].attrs["units"] = str(correlation.survey_volume.units)
             
+            f.create_dataset("survey_total_volume_percent", data=correlation.survey_total_volume_percent)
+            
             #save the bao distance of the fiducial cosmology used and other cosmo quantities
             f.create_dataset("BAO_distance", data=cosmo.bao_distance.value)
             f["BAO_distance"].attrs["units"] = str(cosmo.bao_distance.units)
@@ -415,7 +412,7 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
 
             
             
-        print(f"Rank {mpi_rank}: saved {output_filename}")
+        
     
     all_filenames_dicts = mpi_comm.gather(filenames, root=0)
 
