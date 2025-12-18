@@ -35,17 +35,18 @@ class template_CAMB:
         self._compute_multipoles()
 
     def _unpack_cosmo(self, cosmo):
-        """Automatically extract parameters from an Astropy cosmology."""
+        """Automatically extract parameters from an Astropy cosmology made in
+        the pipeline."""
         self.H0 = cosmo.H0
         self.h = self.H0/ 100
         self.Ombh2 = cosmo.Obh2
         self.Omch2 = cosmo.Och2
         #give some standard values if not mentioned in cosmo initialization
-        self.Omk = getattr(cosmo, "Ok0", 0.0) or 0.0
-        self.Tcmb = getattr(cosmo, "Tcmb0", 2.73) or 2.73
-        self.Neff = getattr(cosmo, "Neff", 3.046) or 3.046
-        self.wa = getattr(cosmo, "wa", 0.0) or 0.0
-        self.w0 = getattr(cosmo, "w0", -1) or -1
+        self.Omk = getattr(cosmo, "Ok0", 0.0)
+        self.Tcmb = getattr(cosmo, "Tcmb0", 2.73) 
+        self.Neff = getattr(cosmo, "Neff", 3.046) 
+        self.wa = getattr(cosmo, "wa", 0.0)
+        self.w0 = getattr(cosmo, "w0", -1) 
         
 
     def _set_camb_params(self):
@@ -60,7 +61,7 @@ class template_CAMB:
         self.pars.InitPower.set_params(As=2e-9, ns=0.965)
 
         # --- Dark energy setup if dynamical---
-        if self.wa !=0:
+        if self.w0 !=-1:
             
             self.pars.DarkEnergy = camb.dark_energy.DarkEnergyFluid()
             self.pars.DarkEnergy.set_params(w=self.w0, wa=self.wa)

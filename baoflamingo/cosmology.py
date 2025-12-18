@@ -143,10 +143,17 @@ class cosmo_tools:
     def E(self, z):
         """Dimensionless Hubble parameter E(z) = H(z)/H0."""
         
+        # Dark energy evolution dynamical
+        if hasattr(self, 'w0') and hasattr(self, 'wa'):
+            Odez = self.Ode0 * (1 + z)**(3 * (1 + self.w0 + self.wa)) * \
+            np.exp(-3 * self.wa * z / (1 + z))
+        #non-dynamical dark energy
+        else:
+            Odez = self.Ode0
         return np.sqrt(
             self.Om0 * (1 + z)**3 +
             self.Or0 * (1 + z)**4 +
-            self.Ode0 +
+            Odez +
             self.Ok0 * (1 + z)**2
         )
 
@@ -193,21 +200,35 @@ class cosmo_tools:
 
         Dc_array = np.array(Dc_list) * u.Mpc
         return Dc_array if len(Dc_array) > 1 else Dc_array[0]
+    
+    def transverse_comoving_distance(self,z):
+        """
+        Compute transverse comoving distance D_M(z) in Mpc.
+        """
+        Dc = self.comoving_distance(z)
+        if self.Ok0 > 0:
+            sqrt_Ok = np.sqrt(self.Ok0)
+            Dm = (self.c_km_s / self.H0) / sqrt_Ok * np.sinh(sqrt_Ok * Dc * self.H0 / self.c_km_s)
+        elif self.Ok0 < 0:
+            sqrt_abs_Ok = np.sqrt(-self.Ok0)
+            Dm = (self.c_km_s / self.H0) / sqrt_abs_Ok * np.sin(sqrt_abs_Ok * Dc * self.H0 / self.c_km_s)
+        else:
+            Dm = Dc
+        return Dm
 
 
     def luminosity_distance(self,z):
         """
         Compute luminosity distance D_L(z) in Mpc.
         """
-        Dc = self.comoving_distance(z)
-        Dl = Dc * (1+z)
+        
+        Dl = self.transverse_comoving_distance(z) * (1+z)
         return Dl
     def angular_diameter_distance(self,z):
         """
         Compute angular diameter distance D_A(z) in Mpc.
         """
-        Dc = self.comoving_distance(z)
-        Da = Dc / (1 + z)
+        Da = self.transverse_comoving_distance(z) / (1 + z)
         return Da
 
     def _bao_sound_horizon(self):
@@ -244,6 +265,8 @@ class cosmo_tools:
         inv_interp = PchipInterpolator(Dc_grid, z_grid, extrapolate=False)
         # call inv_interp(Dc_array) -> z_array (or raises for out-of-range)
         return inv_interp 
+
+
 
     #calculating effective cosmological functions within a certain redshift bin
     @staticmethod

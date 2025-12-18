@@ -65,10 +65,10 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         monitor_thread.start()
     
     # --- Paths ---
-    directory = cfg.paths.directory
+    data_directory = cfg.paths.data_directory
     simulation = cfg.paths.simulation
-    soap_hbt_path = os.path.join(directory, simulation, cfg.paths.soap_hbt_subpath)
-    redshift_path = os.path.join(directory, simulation, cfg.paths.redshift_file)
+    soap_hbt_path = os.path.join(data_directory, simulation, cfg.paths.soap_hbt_subpath)
+    redshift_path = os.path.join(data_directory, simulation, cfg.paths.redshift_file)
     
     # --- Load snapshot and redshift ---
     redshift_list = np.loadtxt(redshift_path, skiprows=1)
@@ -328,7 +328,8 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         realization = int(os.environ.get("REALIZATION_ID", 0))
     
         # Construct nested output directory structure
-        output_dir = os.path.join("results",cfg.paths.output_directory, simulation, str(redshift),f"run_{realization:03d}")
+        output_dir = os.path.join(cfg.paths.output_directory,"results",
+         cfg.paths.results_directory, simulation, str(redshift),f"run_{realization:03d}")
 
         # Make sure it exists (this creates all intermediate subdirectories)
         os.makedirs(output_dir, exist_ok=True)

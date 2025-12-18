@@ -41,9 +41,9 @@ def cartesian_to_spherical_numba(coords, observer):
 
         
         # Shift to be relative to the observer
-        dx = observer[0]-x
-        dy = observer[1]-y
-        dz = observer[2]-z
+        dx = x - observer[0]
+        dy = y - observer[1]
+        dz = z - observer[2]
 
         r = np.sqrt(dx*dx + dy*dy + dz*dz)
         theta = np.arccos(dz / r)  # polar angle [0, pi]
@@ -138,9 +138,9 @@ class coordinate_tools:
     @staticmethod
     def theta_phi_z_to_ra_dec_r(coords, cosmo):
         
-        
+        #changed this to use transverse comoving distance to account for curvature
         # cosmo must provide comoving_distance(z) returning astropy Quantity in Mpc
-        r = cosmo.comoving_distance(coords[:,2]) #shape (N)
+        r = cosmo.transverse_comoving_distance(coords[:,2]) #shape (N)
         
 
         # convert (theta,phi) to (rad,dec)

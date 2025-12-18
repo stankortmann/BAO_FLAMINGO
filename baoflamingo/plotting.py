@@ -258,25 +258,26 @@ class correlation_plotter:
         
         #gaussian fit plot
         #gaussian fitting for the 1d correlation of the bao signal
-        gaussian_results = self.fit.gaussian(
-                                    s_data=s_data.value, 
-                                    mono_data=mono_data,
-                                    mono_data_err=mono_data_err, 
-                                    init_amplitude=0.005, 
-                                    init_mean=self.BAO.value, 
-                                    init_stddev=5
-                                    )
-        if gaussian_results["fit"] is not None and self.cfg.plotting.fit_gaussian:
-            gauss_fit=gaussian_results["fit"]
-            gauss_mu=(gaussian_results["mu"],gaussian_results["mu_err"])
-            gauss_sigma=(gaussian_results["sigma"],gaussian_results["sigma_err"])
+        if self.cfg.plotting.fit_gaussian:
+            gaussian_results = self.fit.gaussian(
+                                        s_data=s_data.value, 
+                                        mono_data=mono_data,
+                                        mono_data_err=mono_data_err, 
+                                        init_amplitude=0.005, 
+                                        init_mean=self.BAO.value, 
+                                        init_stddev=5
+                                        )
+            if gaussian_results["fit"] is not None:
+                gauss_fit=gaussian_results["fit"]
+                gauss_mu=(gaussian_results["mu"],gaussian_results["mu_err"])
+                gauss_sigma=(gaussian_results["sigma"],gaussian_results["sigma_err"])
 
-            plt.scatter(s_data, gauss_fit, color='red', 
-            label=f'Gaussian Fit, μ={gauss_mu[0]:.2f} +/- {gauss_mu[1]:.2f} Mpc, σ={gauss_sigma[0]:.2f} +/- {gauss_sigma[1]:.2f}Mpc')
-        
-        else:
-            print("No fit for the gaussian.")
-        
+                plt.scatter(s_data, gauss_fit, color='red', 
+                label=f'Gaussian Fit, μ={gauss_mu[0]:.2f} +/- {gauss_mu[1]:.2f} Mpc, σ={gauss_sigma[0]:.2f} +/- {gauss_sigma[1]:.2f}Mpc')
+            
+            else:
+                print("No fit for the gaussian.")
+            
         
         
         #no shift

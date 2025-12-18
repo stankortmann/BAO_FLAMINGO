@@ -3,12 +3,13 @@ from typing import List, Union
 
 @dataclass
 class Paths:
-    directory: str
+    data_directory: str
+    output_directory: str
     soap_hbt_subpath: str
     simulation: str
     redshift_file: str
     snapshot_number: Union[int, List[int]]  # can be a single int or list
-    output_directory:str
+    results_directory:str
 
 @dataclass
 class Monitoring:

@@ -1,5 +1,6 @@
 paths:
-  directory: /cosma8/data/dp004/flamingo/Runs/ #do not touch!
+  data_directory: /cosma8/data/dp004/flamingo/Runs/ #do not touch!
+  output_directory: /cosma8/data/do012/dc-kort1/ #this is where the I store my outputs, change if necessary
   soap_hbt_subpath: SOAP-HBT/halo_properties_00 #do not touch!
   redshift_file: output_list.txt #do not touch!
 
@@ -7,7 +8,7 @@ paths:
   simulation: L1000N1800/HYDRO_FIDUCIAL
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
   snapshot_number: [63,65,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  output_directory: lrg_soft #full path if necessary
+  results_directory: lrg_soft #full path if necessary
 
 monitoring:
   cpu_ram_monitor: off

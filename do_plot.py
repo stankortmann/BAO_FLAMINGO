@@ -43,13 +43,14 @@ if __name__ == "__main__":
 
 
 
-    directory = cfg.paths.directory
+    data_directory = cfg.paths.data_directory
     simulation = cfg.paths.simulation
     output_directory=cfg.paths.output_directory
-    redshift_path = os.path.join(directory, simulation, cfg.paths.redshift_file)
+    results_directory=cfg.paths.results_directory
+    redshift_path = os.path.join(data_directory, simulation, cfg.paths.redshift_file)
     redshift_list = np.loadtxt(redshift_path, skiprows=1)
     # Build base directory where results are stored
-    BASE_RESULTS = os.path.join("results",output_directory,simulation)
+    BASE_RESULTS = os.path.join(output_directory,"results",results_directory,simulation)
      # --- Handle multiple snapshot numbers ---
     snapshot_numbers = cfg.paths.snapshot_number
 
