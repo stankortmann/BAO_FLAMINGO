@@ -53,6 +53,7 @@ if __name__ == "__main__":
         snapshot_numbers = [snapshot_numbers]
     if rank==0:
         print(f"Found snapshot numbers: {snapshot_numbers}", flush=True)
+        print(f"This is simulation: {cfg.paths.simulation}", flush=True)
 
     # --- Run pipeline for each snapshot ---
     for snap in snapshot_numbers:
@@ -64,31 +65,8 @@ if __name__ == "__main__":
         data_filenames = run_pipeline_single(cfg,
             mpi_comm=comm,mpi_rank=rank,mpi_size=size)
         
-        #this is now done in the do_plot.py script, might be redone here
-        """
-        #MPI parallelization 
-        # Broadcast so all ranks have the same list
-        data_filenames = comm.bcast(data_filenames, root=0)
-        #Distribute keys across ranks
-        file_list = list(data_filenames.values())
-        mpi_file_list = file_list[rank::size]
 
-        
-        #for the MCMC chain
-        chi_2_total={}
-        for data_filename in mpi_file_list:
-            print(f"Generating plots for {data_filename}...", flush=True)
-            
-            plotter = correlation_plotter(
-                filename=data_filename,
-                cfg=cfg,
-                mu_rebin=1,
-                s_rebin=1
-            )
-        """
-            
-
-                
+    comm.Barrier()            
     if rank==0:                
         print("\nAll snapshots processed successfully.")
 

@@ -63,7 +63,7 @@ class template_CAMB:
         # --- Dark energy setup if dynamical---
         if self.w0 !=-1:
             
-            self.pars.DarkEnergy = camb.dark_energy.DarkEnergyFluid()
+            self.pars.DarkEnergy = camb.dark_energy.DarkEnergyPPF()
             self.pars.DarkEnergy.set_params(w=self.w0, wa=self.wa)
 
         self.pars.set_matter_power(redshifts=[self.z], kmax=10.0)

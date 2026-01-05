@@ -41,9 +41,9 @@ def cartesian_to_spherical_numba(coords, observer):
 
         
         # Shift to be relative to the observer
-        dx = x - observer[0]
-        dy = y - observer[1]
-        dz = z - observer[2]
+        dx = observer[0] - x
+        dy = observer[1] - y
+        dz = observer[2] - z
 
         r = np.sqrt(dx*dx + dy*dy + dz*dz)
         theta = np.arccos(dz / r)  # polar angle [0, pi]

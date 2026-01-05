@@ -65,6 +65,9 @@ class cosmo_tools:
         if hasattr(constants, "wa"):
             self.wa=constants.wa
             self.wa= update.get("wa",self.wa)
+        #check for w crossing -1
+        if hasattr(self, "w0") and hasattr(self, "wa"):
+            self.check_w_crossing()
 
         #CMB
         if isinstance(constants.Tcmb0, au.quantity.Quantity):
@@ -94,6 +97,8 @@ class cosmo_tools:
         
         #constants
         self.c_km_s = c.to('km/s').value
+
+        
 
 
         #save all the importan parameters here
@@ -138,16 +143,22 @@ class cosmo_tools:
         return new_init
     
 
-    
-        #internal functions for distances, do not change z here!!
+    def check_w_crossing(self):
+        w_today = self.w0
+        w_early = self.w0 + self.wa
+        
+        if (w_today + 1) * (w_early + 1) > 0:
+            self.w_crossing=False
+        else:
+            self.w_crossing=True
     def E(self, z):
         """Dimensionless Hubble parameter E(z) = H(z)/H0."""
         
-        # Dark energy evolution dynamical
+        # dynamical dark energy evolution
         if hasattr(self, 'w0') and hasattr(self, 'wa'):
             Odez = self.Ode0 * (1 + z)**(3 * (1 + self.w0 + self.wa)) * \
             np.exp(-3 * self.wa * z / (1 + z))
-        #non-dynamical dark energy
+        #non-dynamical dark energy (w=-1)
         else:
             Odez = self.Ode0
         return np.sqrt(
@@ -205,15 +216,21 @@ class cosmo_tools:
         """
         Compute transverse comoving distance D_M(z) in Mpc.
         """
-        Dc = self.comoving_distance(z)
+        Dc = self.comoving_distance(z) # Mpc
+        #open curvature case
         if self.Ok0 > 0:
             sqrt_Ok = np.sqrt(self.Ok0)
-            Dm = (self.c_km_s / self.H0) / sqrt_Ok * np.sinh(sqrt_Ok * Dc * self.H0 / self.c_km_s)
+            Dm = (self.c_km_s / self.H0) / sqrt_Ok * \
+            np.sinh(sqrt_Ok * Dc.value * self.H0 / self.c_km_s)* u.Mpc
+        #closed curvature case
         elif self.Ok0 < 0:
             sqrt_abs_Ok = np.sqrt(-self.Ok0)
-            Dm = (self.c_km_s / self.H0) / sqrt_abs_Ok * np.sin(sqrt_abs_Ok * Dc * self.H0 / self.c_km_s)
+            Dm = (self.c_km_s / self.H0) / sqrt_abs_Ok *\
+             np.sin(sqrt_abs_Ok * Dc.value * self.H0 / self.c_km_s) * u.Mpc
+        #flat case
         else:
-            Dm = Dc
+            Dm = Dc.value * u.Mpc
+        
         return Dm
 
 
@@ -221,8 +238,8 @@ class cosmo_tools:
         """
         Compute luminosity distance D_L(z) in Mpc.
         """
-        
-        Dl = self.transverse_comoving_distance(z) * (1+z)
+
+        Dl = self.transverse_comoving_distance(z) * (1 + z)
         return Dl
     def angular_diameter_distance(self,z):
         """

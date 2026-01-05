@@ -78,6 +78,7 @@ class Fiducial:
     para_1_range: list[float]
     para_2_range: list[float]
     points_per_para: int
+    allow_w_crossing: bool
 
 
 

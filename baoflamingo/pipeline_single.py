@@ -69,10 +69,8 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
     simulation = cfg.paths.simulation
     soap_hbt_path = os.path.join(data_directory, simulation, cfg.paths.soap_hbt_subpath)
     redshift_path = os.path.join(data_directory, simulation, cfg.paths.redshift_file)
-    
-    # --- Load snapshot and redshift ---
-    redshift_list = np.loadtxt(redshift_path, skiprows=1)
     redshift_number = cfg.paths.snapshot_number
+    
     
     
     #all the data loading is only done by rank 0 and then broadcasted when
@@ -80,7 +78,8 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
     if mpi_rank ==0:
         data = load(soap_hbt_path + str(int(redshift_number)) + ".hdf5")
         print("Snapshot", redshift_number, "loaded")
-    
+        # --- Load redshift list ---
+        redshift_list = np.loadtxt(redshift_path, skiprows=1)
         # --- Cosmology ---
         metadata = data.metadata
         redshift = redshift_list[redshift_number]
@@ -245,11 +244,6 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
         simulation_cosmology = None
         param_dicts = None
 
-
-
-
-
-    # --- Broadcast filtered coordinates to all ranks ---
     d_coords_sph = mpi_comm.bcast(d_coords_sph, root=0)
     cosmo_real = mpi_comm.bcast(cosmo_real, root=0)
     box_size = mpi_comm.bcast(box_size, root=0)
@@ -287,6 +281,20 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
     filenames={}
     #will be done for all cosmologies provided
     for cosmo in local_cosmo_list:
+        
+        if hasattr(cosmo, "w_crossing"):
+            #check if w0+wa >0
+            if cosmo.w0+cosmo.wa >0:
+                print(f"Skipping unphysical cosmology: w0 + wa = {cosmo.w0 + cosmo.wa:.2f} > 0")
+                continue
+            #maybe add a check here for w crossing 
+            """
+            if cosmo.w_crossing and not cfg.fiducial.allow_w_crossing:
+                print(f"[Rank {mpi_rank}] Cosmology {cosmo.name} has w crossing -1, skipping...")
+                continue
+            """
+
+
 
         # --- pycorr ---
         correlation = correlation_tools(
@@ -405,6 +413,8 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
             for attr in cfg.fiducial.parameters_to_save:
                 if hasattr(cosmo, attr):
                     f.create_dataset(attr, data=getattr(cosmo, attr))
+
+        print(f"[Rank {mpi_rank}] Saved correlation data of {cosmo.name}")
                     
 
             

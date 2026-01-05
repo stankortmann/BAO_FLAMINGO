@@ -96,3 +96,4 @@ fiducial:
   para_1_range: [0.2,0.4] #range for variable 1
   para_2_range: [0.6,0.8] #range for variable 2 if needed
   points_per_para: 10 #number of points per variable, total points = points_per_para^n_variables
+  allow_w_crossing: on

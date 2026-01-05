@@ -97,7 +97,7 @@ class correlation_tools:
         volume =area_sr.value * (self.cosmo.outer_edge_bin**3 - self.cosmo.inner_edge_bin**3) / 3
         self.survey_volume = volume.to(u.Gpc**3) #easier to see
         self.survey_total_volume_percent=((self.survey_volume/(self.cosmo.box_size**3)).value)*100
-        print(f"[RANK {self.rank_id}]: Percentage of total box surveyed: {self.survey_total_volume_percent} %")
+        
           
 
 
