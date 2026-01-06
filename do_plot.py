@@ -145,7 +145,8 @@ if __name__ == "__main__":
                 mcmc_list=mcmc_list, 
                 outdir=full_run_path,
                 use_quad_likelihood=True,
-                true_pars=true_pars
+                true_pars=true_pars,
+                provided_likelihoods=None
                 )
                 
         print("\nAll snapshots processed successfully.")

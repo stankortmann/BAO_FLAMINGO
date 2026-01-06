@@ -53,6 +53,10 @@ if __name__ == "__main__":
     redshift_list = np.loadtxt(redshift_path, skiprows=1)
     # Build base directory where results are stored
     base = os.path.join(output_directory,"results",results_directory,simulation)
+    # Build directory for the combined posterior results
+    combined_posterior_dir = os.path.join(base, "combined_posteriors")
+    os.makedirs(combined_posterior_dir, exist_ok=True)
+    combined_likelihoods = None #multiply all the likelihoods together
      # --- Handle multiple snapshot numbers ---
     snapshot_numbers = cfg.paths.snapshot_number
 
@@ -78,6 +82,7 @@ if __name__ == "__main__":
         average_run_path = os.path.join(redshift_dir,"average")
         #the rest is the same as in do_plot.py, but now for the average run!
         mcmc_list=[]
+
         relative_error=0.1  #maximum relative error to include the point in the posterior plot
         files = [f for f in os.listdir(average_run_path) if f.endswith(".hdf5")]
         for fname in files:
@@ -107,9 +112,13 @@ if __name__ == "__main__":
                         "alpha_mean": plotter.alpha_with_shift[0],
                         "alpha_std": plotter.alpha_with_shift[1],
                         "quad_mean": plotter.mu_quad,
-                        "quad_std": plotter.std_quad
+                        "quad_std": plotter.std_quad,
+                        "fit_status": True
                         } 
                         if entry["alpha_mean"] is not None and entry["alpha_std"]/entry["alpha_mean"] < relative_error:
+                            mcmc_list.append(entry)
+                        else:
+                            entry["fit_status"] = False
                             mcmc_list.append(entry)
                     if name == "w0waCDM":
                         true_pars={"para":float(plotter.para1_value)}
@@ -132,18 +141,37 @@ if __name__ == "__main__":
                         } 
                         if entry["alpha_mean"] is not None and entry["alpha_std"]/entry["alpha_mean"] < relative_error:
                             mcmc_list.append(entry)
-
+                        
                     if name == "w0waCDM":
                         true_pars={"para1":float(plotter.para1_value), \
                                     "para2":float(plotter.para2_value)}
 
         if cfg.fiducial.manual_cosmo:
-            posterior_plotter( 
-            redshift=redshift,
-            mcmc_list=mcmc_list, 
-            outdir=average_run_path,
-            use_quad_likelihood=True,
-            true_pars=true_pars
-            )
-            
-    print("\nAll snapshots processed successfully.")
+            posterior_init=posterior_plotter( 
+                    cfg=cfg,
+                    redshift=redshift,
+                    mcmc_list=mcmc_list, 
+                    outdir=average_run_path,
+                    use_quad_likelihood=True,
+                    true_pars=true_pars,
+                    provided_likelihoods=None
+                    )
+            #store the combined likelihoods over all snapshots by multiplying them
+            #this assumes that the snapshots are independent which is not strictly true
+            if combined_likelihoods is None:
+                combined_likelihoods = posterior_init.likelihood
+            else:
+                combined_likelihoods *= posterior_init.likelihood
+    print("\nAll snapshots processed successfully.")       
+    if cfg.fiducial.manual_cosmo and combined_likelihoods is not None:
+        posterior_plotter( 
+                cfg=cfg,
+                redshift=None,
+                mcmc_list=mcmc_list, #use the most recent mcmc_list for the parameter names
+                outdir=combined_posterior_dir,
+                use_quad_likelihood=True,
+                true_pars=true_pars, #use the most recent true_pars
+                provided_likelihoods=combined_likelihoods
+                )   
+        print("\nCombined posterior over all snapshots processed successfully.") 
+    

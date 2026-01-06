@@ -377,11 +377,13 @@ class correlation_plotter:
 class posterior_plotter:
 
     def __init__(self, 
+                cfg,
                 redshift,
                 mcmc_list, 
                 outdir=".",
                 use_quad_likelihood=False,
-                true_pars=None):
+                true_pars=None,
+                provided_likelihoods=None):
         """
         Parameters
         ----------
@@ -396,19 +398,32 @@ class posterior_plotter:
                {"para": 0.315}              # 1 parameter
                {"para1": 0.315, "para2": 0.685}   # 2 parameters
         """
-        self.redshift=redshift
-        self.mcmc_list = mcmc_list
-        self.outdir = outdir
-        self.use_quad = use_quad_likelihood
-        self.true_pars = true_pars
-
-        # infer dimension
-        if "para_value" in mcmc_list[0]:
-            self.ndim = 1
-            self._plot_1d()
+        
+        self.provided_likelihoods = provided_likelihoods
+        if provided_likelihoods is None:
+            self.redshift=redshift
+            self.mcmc_list = mcmc_list
+            self.outdir = outdir
+            self.use_quad = use_quad_likelihood
+            self.true_pars = true_pars
         else:
-            self.ndim = 2
+            self.redshift="combined"
+            self.mcmc_list = mcmc_list
+            self.outdir = outdir
+            self.use_quad = use_quad_likelihood
+            self.true_pars = true_pars
+
+        #unpacking all the parameters in the configuration file
+        self.ndim=len(cfg.fiducial.parameters_mcmc)
+
+        if self.ndim == 1:
+            self.p_vals=np.linspace(*cfg.fiducial.para_1_range, cfg.fiducial.points_per_para)
+            self._plot_1d()
+        elif self.ndim == 2:
+            self.p1_vals = np.linspace(*cfg.fiducial.para_1_range, cfg.fiducial.points_per_para)
+            self.p2_vals = np.linspace(*cfg.fiducial.para_2_range, cfg.fiducial.points_per_para)
             self._plot_2d()
+        
         ("printed all the plots and posterior")
 
     # ------------------------------------------------------------
@@ -416,31 +431,42 @@ class posterior_plotter:
     # ------------------------------------------------------------
     def _likelihood(self):
         """Gaussian likelihood from α (and ξ2 if enabled)."""
-
-        # α likelihood
-        
-        L_alpha = np.exp(-0.5 * ((self.alpha - 1) / self.alpha_std)**2)
-
-        if not self.use_quad:
-            return L_alpha
-
-        # Quad likelihood if turned on
-       
-
-        # No model prediction available → use "mean-normalized" deviation
-        L_quad = np.exp(-0.5 * ((self.quad) / self.quad_std)**2)
-
-        return L_alpha * L_quad
+        """
+        Returns a 2D array of likelihoods on a full param1 x param2 grid,
+        with zero likelihood for missing points.
+        """
+        if self.ndim == 1:
+            L_grid = np.zeros(len(self.p_vals))
+        if self.ndim == 2:
+            L_grid = np.zeros((len(self.p1_vals), len(self.p2_vals)))
+        for d in self.mcmc_list:
+            if self.ndim == 2:
+                i = np.where(self.p1_vals == d["para1_value"])[0][0]
+                j = np.where(self.p2_vals == d["para2_value"])[0][0]
+            if self.ndim == 1:
+                i = np.where(self.p_vals == d["para_value"])[0][0]
+                
+            
+                
+            L = np.exp(-0.5*((d["alpha_mean"]-1)/d["alpha_std"])**2)
+            if self.use_quad:
+                L *= np.exp(-0.5*((d["quad_mean"])/d["quad_std"])**2)
+            if self.ndim == 2: 
+                L_grid[i,j] = L
+            if self.ndim == 1:
+                L_grid[i] = L
+           
+        return L_grid
 
     # ------------------------------------------------------------
     # Compute posterior values for each grid point
     # ------------------------------------------------------------
-    def _compute_posterior(self):
-        post = np.array(self._likelihood())
-        post /= np.sum(post)  # normalize, might not be smart because of incorrect priors
-    
-        return post
-
+    def _posterior(self):
+        """Compute posterior from likelihood."""
+        # normalize, might not be smart because of incorrect priors
+        
+        posterior = self.likelihood / np.sum(self.likelihood)
+        return posterior  
     # ------------------------------------------------------------
     # Plotting: 1 PARAMETER
     # ------------------------------------------------------------
@@ -448,61 +474,71 @@ class posterior_plotter:
         self.para_value   = np.array([d["para_value"] for d in self.mcmc_list])
         self.para_name  = self.mcmc_list[0]["para_name"]
         
-        self.alpha  = np.array([d["alpha_mean"] for d in self.mcmc_list])
-        self.alpha_std  = np.array([d["alpha_std"]  for d in self.mcmc_list])
-        self.quad   = np.array([d["quad_mean"] for d in self.mcmc_list])
-        self.quad_std  = np.array([d["quad_std"]  for d in self.mcmc_list])
-        
+        if self.provided_likelihoods is None:
+            self.alpha  = np.array([d["alpha_mean"] for d in self.mcmc_list])
+            self.alpha_std  = np.array([d["alpha_std"]  for d in self.mcmc_list])
+            self.quad   = np.array([d["quad_mean"] for d in self.mcmc_list])
+            self.quad_std  = np.array([d["quad_std"]  for d in self.mcmc_list])
+            
 
-        # -----------------------
-        # α plot
-        # -----------------------
-        plt.figure(figsize=(8,6))
-        plt.errorbar(self.para, self.alpha, 
-        yerr=self.alpha_std, fmt='o', capsize=3
-        )
-        
-        if self.true_pars is not None:
-            plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
+            # -----------------------
+            # α plot
+            # -----------------------
+            plt.figure(figsize=(8,6))
+            plt.errorbar(self.para_value, self.alpha, 
+            yerr=self.alpha_std, fmt='o', capsize=3
+            )
+            
+            if self.true_pars is not None:
+                plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
 
-        plt.xlabel(self.para_name)
-        plt.ylabel(r"$\alpha$")
-        plt.title(f"Redshift {self.redshift:.2f} – α")
-        
-        plt.savefig(os.path.join(self.outdir, "a-alpha_mcmc.png"), dpi=300)
-        plt.close()
+            plt.xlabel(self.para_name)
+            plt.ylabel(r"$\alpha$")
+            plt.title(f"Redshift {self.redshift:.2f} – α")
+            
+            plt.savefig(os.path.join(self.outdir, "a-alpha_mcmc.png"), dpi=300)
+            plt.close()
 
-        # -----------------------
-        # Quadrupole plot
-        # -----------------------
-        plt.figure(figsize=(8,6))
-        plt.errorbar(self.para,self.quad, 
-        yerr=self.quad_std, fmt='o', capsize=3)
+            # -----------------------
+            # Quadrupole plot
+            # -----------------------
+            plt.figure(figsize=(8,6))
+            plt.errorbar(self.para_value,self.quad, 
+            yerr=self.quad_std, fmt='o', capsize=3)
 
-        if self.true_pars is not None:
-            plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
+            if self.true_pars is not None:
+                plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
 
-        plt.xlabel(self.para_name)
-        plt.ylabel(r"Average Quadrupole $\xi_2$")
-        plt.title(f"Redshift {self.redshift:.2f} – Quadrupole")
-        
-        plt.savefig(os.path.join(self.outdir, "a-quad_mcmc.png"), dpi=300)
-        plt.close()
+            plt.xlabel(self.para_name)
+            plt.ylabel(r"Average Quadrupole $\xi_2$")
+            plt.title(f"Redshift {self.redshift:.2f} – Quadrupole")
+            
+            plt.savefig(os.path.join(self.outdir, "a-quad_mcmc.png"), dpi=300)
+            plt.close()
 
         # -----------------------
         # Posterior 1D
         # -----------------------
-        post = self.compute_posterior()
+        if self.provided_likelihoods is None:
+            self.likelihood = self._likelihood()
+
+        #for use in the combined posterior
+        else:
+            self.likelihood = np.array(self.provided_likelihoods)
+        posterior = self._posterior()
         sort = np.argsort(self.para)
 
         plt.figure(figsize=(8,6))
-        plt.plot(para[sort], post[sort], "-o")
+        plt.plot(self.para[sort], posterior[sort], "-o")
         if self.true_pars is not None:
             plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
 
-        plt.xlabel(pname)
+        plt.xlabel(self.para_name)
         plt.ylabel("Posterior")
-        plt.title(f"Redshift {self.redshift:.2f} – 1D Posterior")
+        if self.provided_likelihoods is not None:
+            plt.title(f"Redshift {self.redshift:.2f} – 1D Posterior")
+        else:
+            plt.title("Combined 1D Posterior")
         
         plt.savefig(os.path.join(self.outdir, "a-posterior_1d.png"), dpi=300)
         plt.close()
@@ -513,78 +549,90 @@ class posterior_plotter:
     # Plotting: 2 PARAMETERS
     # ------------------------------------------------------------
     def _plot_2d(self):
+        
         self.para1_value  = np.array([d["para1_value"] for d in self.mcmc_list])
         self.para2_value  = np.array([d["para2_value"] for d in self.mcmc_list])
         self.para1_name = self.mcmc_list[0]["para1_name"]
         self.para2_name = self.mcmc_list[0]["para2_name"]
         
-        self.alpha  = np.array([d["alpha_mean"] for d in self.mcmc_list])
-        self.alpha_std  = np.array([d["alpha_std"] for d in self.mcmc_list])
+        if self.provided_likelihoods is None:
+            self.alpha  = np.array([d["alpha_mean"] for d in self.mcmc_list])
+            self.alpha_std  = np.array([d["alpha_std"] for d in self.mcmc_list])
 
-        self.quad   = np.array([d["quad_mean"] for d in self.mcmc_list])
-        self.quad_std   = np.array([d["quad_std"] for d in self.mcmc_list])        
+            self.quad   = np.array([d["quad_mean"] for d in self.mcmc_list])
+            self.quad_std   = np.array([d["quad_std"] for d in self.mcmc_list])        
 
-        # ============================================================
-        # α–1 scatter heatmap
-        # ============================================================
-        plt.figure(figsize=(8,6))
-        sc = plt.scatter(self.para1_value, self.para2_value, 
-                        c=self.alpha-1, cmap="seismic", 
-                        s=120, vmin=-0.1, vmax=0.1)
-        plt.colorbar(sc, label=r"$\alpha - 1$")
+            # ============================================================
+            # α–1 scatter heatmap
+            # ============================================================
+            plt.figure(figsize=(8,6))
+            sc = plt.scatter(self.para1_value, self.para2_value, 
+                            c=self.alpha-1, cmap="seismic", 
+                            s=120, vmin=-0.1, vmax=0.1)
+            plt.colorbar(sc, label=r"$\alpha - 1$")
 
-        if self.true_pars is not None:
-            plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
-            plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
-            plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
-                        s=160, color="black", marker="x")
+            if self.true_pars is not None:
+                plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
+                plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
+                plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
+                            s=160, color="black", marker="x")
 
-        plt.xlabel(self.para1_name)
-        plt.ylabel(self.para2_name)
-        plt.title(f"Redshift {self.redshift:.2f} – α Contour")
-        
-        plt.savefig(os.path.join(self.outdir, "a-alpha_contour.png"), dpi=300)
-        plt.close()
+            plt.xlabel(self.para1_name)
+            plt.ylabel(self.para2_name)
+            plt.title(f"Redshift {self.redshift:.2f} – α Contour")
+            
+            plt.savefig(os.path.join(self.outdir, "a-alpha_contour.png"), dpi=300)
+            plt.close()
 
-        # ============================================================
-        # Quadrupole scatter heatmap
-        # ============================================================
-        plt.figure(figsize=(8,6))
-        sc = plt.scatter(self.para1_value, self.para2_value, 
-                         c=self.quad, cmap="Reds", 
-                         s=120, 
-                         vmin=np.min(self.quad),
-                         vmax=np.mean(self.quad))
-        plt.colorbar(sc, label=r"Quadrupole $\xi_2$")
+            # ============================================================
+            # Quadrupole scatter heatmap
+            # ============================================================
+            plt.figure(figsize=(8,6))
+            sc = plt.scatter(self.para1_value, self.para2_value, 
+                            c=self.quad, cmap="Reds", 
+                            s=120, 
+                            vmin=np.min(self.quad),
+                            vmax=np.mean(self.quad))
+            plt.colorbar(sc, label=r"Quadrupole $\xi_2$")
 
-        if self.true_pars is not None:
-            plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
-            plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
-            plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
-                        s=160, color="black", marker="x")
+            if self.true_pars is not None:
+                plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
+                plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
+                plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
+                            s=160, color="black", marker="x")
 
-        plt.xlabel(self.para1_name)
-        plt.ylabel(self.para2_name)
-        plt.title(f"Redshift {self.redshift:.2f} – Quadrupole")
-        
-        plt.savefig(os.path.join(self.outdir, "a-quad_contour.png"), dpi=300)
-        plt.close()
+            plt.xlabel(self.para1_name)
+            plt.ylabel(self.para2_name)
+            plt.title(f"Redshift {self.redshift:.2f} – Quadrupole")
+            
+            plt.savefig(os.path.join(self.outdir, "a-quad_contour.png"), dpi=300)
+            plt.close()
 
         # ============================================================
         # Posterior 2D contour
         # ============================================================
-        posterior = self._compute_posterior()
+        if self.provided_likelihoods is None:
+            self.likelihood = self._likelihood()
+            
+        #for use in the combined posterior
+        else:
+            self.likelihood = np.array(self.provided_likelihoods)
+        posterior = self._posterior()
 
-        # interpolate to grid for smooth contour
-        grid_x, grid_y = np.mgrid[
-            self.para1_value.min():self.para1_value.max():200j,
-            self.para2_value.min():self.para2_value.max():200j
-        ]
-        grid_posterior = griddata((self.para1_value, self.para2_value), 
-                posterior, (grid_x, grid_y), method="cubic")
-
+        #set up the grid for contourf
+        P1, P2 = np.meshgrid(self.p1_vals, self.p2_vals, indexing="ij")
+        # sanity check
+        if posterior.shape != (len(self.p1_vals), len(self.p2_vals)):
+            raise ValueError(
+                f"Posterior has shape {posterior.shape}, but expected "
+                f"({len(self.p1_vals)}, {len(self.p2_vals)})"
+            )
         plt.figure(figsize=(8,6))
-        cs = plt.contourf(grid_x, grid_y, grid_posterior, 40, cmap="viridis")
+        cs = plt.contourf(
+                    P1, P2, posterior,
+                    levels=40,
+                    cmap="viridis"
+                    )
         plt.colorbar(cs, label="Posterior")
 
         if self.true_pars is not None:
@@ -593,7 +641,10 @@ class posterior_plotter:
 
         plt.xlabel(self.para1_name)
         plt.ylabel(self.para2_name)
-        plt.title(f"Redshift {self.redshift:.2f} – Posterior 2D")
+        if self.provided_likelihoods is not None:
+            plt.title("Combined 2D Posterior")
+        else:
+            plt.title(f"Redshift {self.redshift:.2f} – Posterior 2D")
         
         plt.savefig(os.path.join(self.outdir, "a-posterior_2d_smoothed.png"), dpi=300)
         plt.close()
@@ -601,13 +652,20 @@ class posterior_plotter:
         # ============================================================
         # Corner plot
 
-        samples = np.vstack([self.para1_value, self.para2_value]).T
-        corner_posterior = posterior
-        smooth=0.2
+        
+        
+        samples = np.column_stack([
+            P1.ravel(),
+            P2.ravel()
+        ])
+
+        corner_posterior = posterior.ravel()
+        #hardcoded, purely visual smoothing of the corner plot
+        smooth=0.7
         
 
 
-        fig = corner.corner(
+        corner_kwargs = dict(
             data=samples,
             weights=corner_posterior,
             labels=[self.para1_name, self.para2_name],
@@ -617,10 +675,21 @@ class posterior_plotter:
             color="C1",
             show_titles=True,
             smooth=smooth,
-            #histogram settings,
-            bins=[len(np.unique(self.para1_value)), len(np.unique(self.para2_value))],
-            hist_kwargs={"density": True, "align": "mid"}  # ensures histogram centers match sample locations
+            bins=[
+                len(np.unique(self.para1_value)),
+                len(np.unique(self.para2_value))
+            ],
+            hist_kwargs={"density": True, "align": "mid"}
         )
+
+        # Only add truth lines if provided
+        if self.true_pars is not None:
+            corner_kwargs.update(
+                truths=[self.true_pars["para1"], self.true_pars["para2"]],
+                truth_color="k"
+            )
+
+        fig = corner.corner(**corner_kwargs)
 
         fig.savefig(os.path.join(self.outdir,"a-corner_posterior.png"), dpi=300)
 
