@@ -265,7 +265,7 @@ class filtering_tools:
             #here are all the selection criteria of the LRG survey
             mask= (m_z-m_w1>0.8*(m_r-m_z)-0.6)
             mask &= ((m_g-m_w1>2.9) | (m_r-m_w1>1.8))
-            mask &= ((m_r-m_w1>1.8*(m_w1-17.4)) & 
+            mask &= ((m_r-m_w1>1.8*(m_w1-17.14)) & 
                     ((m_r-m_w1>m_w1-16.33) | (m_r-m_w1>3.3)))
             
             return mask
@@ -280,7 +280,7 @@ class filtering_tools:
 
             mask= (m_z-m_w1>0.8*(m_r-m_z)-0.6)
             mask &= ((m_g-m_w1>2.9) | (m_r-m_w1>1.8))
-            mask &= ((m_r-m_w1>1.8*(m_w1-18.4)) & 
+            mask &= ((m_r-m_w1>1.8*(m_w1-18.14)) & 
                     ((m_r-m_w1>m_w1-17.33) | (m_r-m_w1>3.3)))
             
             return mask

@@ -62,11 +62,18 @@ class cosmo_tools:
         if hasattr(constants, "w0"):
             self.w0=constants.w0
             self.w0= update.get("w0",self.w0)
+        else:
+            self.w0=-1.0
+            self.w0= update.get("w0",self.w0)
         if hasattr(constants, "wa"):
             self.wa=constants.wa
             self.wa= update.get("wa",self.wa)
+        else:
+            self.wa=0.0
+            self.wa= update.get("wa",self.wa)
         #check for w crossing -1
-        if hasattr(self, "w0") and hasattr(self, "wa"):
+        if self.w0 != -1.0 and self.wa != 0.0:
+            
             self.check_w_crossing()
 
         #CMB
@@ -155,7 +162,7 @@ class cosmo_tools:
         """Dimensionless Hubble parameter E(z) = H(z)/H0."""
         
         # dynamical dark energy evolution
-        if hasattr(self, 'w0') and hasattr(self, 'wa'):
+        if self.w0 != -1.0 and self.wa != 0.0:
             Odez = self.Ode0 * (1 + z)**(3 * (1 + self.w0 + self.wa)) * \
             np.exp(-3 * self.wa * z / (1 + z))
         #non-dynamical dark energy (w=-1)

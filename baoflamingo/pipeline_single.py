@@ -281,29 +281,32 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
     filenames={}
     #will be done for all cosmologies provided
     for cosmo in local_cosmo_list:
-        
+
         if hasattr(cosmo, "w_crossing"):
-            #check if w0+wa >0
-            if cosmo.w0+cosmo.wa >0:
+            if cosmo.w0 + cosmo.wa > 0:
                 print(f"Skipping unphysical cosmology: w0 + wa = {cosmo.w0 + cosmo.wa:.2f} > 0")
                 continue
-            #maybe add a check here for w crossing 
-            """
-            if cosmo.w_crossing and not cfg.fiducial.allow_w_crossing:
-                print(f"[Rank {mpi_rank}] Cosmology {cosmo.name} has w crossing -1, skipping...")
-                continue
-            """
-
-
 
         # --- pycorr ---
-        correlation = correlation_tools(
+        try:
+            correlation = correlation_tools(
                 coordinates=d_coords_sph,
                 cosmology=cosmo,
                 cfg=cfg,
                 rank_id=mpi_rank
-        
-        )
+            )
+        except correlation_tools.SkipCosmology as e:
+            print(f"[Rank {mpi_rank}] Skipping {cosmo.name}: {e}")
+            continue  
+        except Exception as e:
+            # optional: treat any unexpected failure as skip too
+            print(f"[Rank {mpi_rank}] Unexpected failure for {cosmo.name}: {e}")
+            continue
+
+        # ( extra guard right here, belt-and-suspenders:
+        if not np.isfinite(correlation.xi).all() or not np.isfinite(correlation.cov).all():
+            print(f"[Rank {mpi_rank}] {cosmo.name}: non-finite xi/cov detected after pycorr, skipping.")
+            continue
         
         # --- CAMB template to fit later on ---
         if cfg.plotting.monopole or cfg.plotting.quadrupole:

@@ -32,7 +32,7 @@ print(f"xi0 shape:{np.shape(xi0)}")
 print(f"xi2 shape:{np.shape(xi2)}")
 s=template.s
 plt.figure(figsize=(8,5))
-plt.plot(s, xi0, label='Monopole ξ0(s)', marker='o')
+plt.plot(s, xi0, label=r'Monopole $ξ_0(s)$', marker='o')
 #plt.plot(s_array, xi2, label='Quadrupole ξ2(s)', marker='x')
 plt.xlabel(r'$s \, [\mathrm{Mpc}]$')
 plt.ylabel(r'$\xi_\ell(s)$')

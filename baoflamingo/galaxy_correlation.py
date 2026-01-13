@@ -9,6 +9,7 @@ from pycorr.twopoint_jackknife import KMeansSubsampler
 from baoflamingo.coordinates import coordinate_tools
 
 
+
 class correlation_tools:
     """
     Reimplementation of your TreeCorr class using pycorr jackknife counters.
@@ -25,7 +26,9 @@ class correlation_tools:
       - cov   : 2D covariance matrix of flattened xi (shape (ns*nmu, ns*nmu))
       - nsamp, nmu etc available for diagnostics
     """
-
+    class SkipCosmology(Exception):
+        """Custom exception to signal skipping a cosmology due to errors in correlation function computation."""
+        pass
     def __init__(self, coordinates, cosmology, cfg, rank_id=0):
         # basic bookkeeping
         self.coordinates = coordinates
@@ -189,40 +192,55 @@ class correlation_tools:
         weights_data = None
         weights_random = None
 
-        # Now instantiate the TwoPointCorrelationFunction
-  
-        ls = TwoPointCorrelationFunction(
-            mode='smu',
-            #data
-            data_positions1=pos_data,
-            data_samples1=patch_labels_data,
-            data_weights1=weights_data,
-            #randoms
-            randoms_positions1=pos_random,
-            randoms_samples1=patch_labels_random,
-            randoms_weights1=weights_random,
-            #settings
-            bin_type='lin',          # linear bins -> faster
-            position_type='rdd',     # positions are provided as (3,N)
-            edges=self.edges,
-            #weight_type=None, #this is acting weird
-            los='midpoint',
-            estimator='landyszalay',
-            nthreads=1,
-            gpu=False
-            )
-        #actually running the estimator (including the jackknife method)
-        xi,cov=ls.get_corr(return_cov=True)
-       # Boolean array where True indicates NaN
-        nan_mask = np.isnan(xi)
+        # ---- HARD GUARD BEFORE CORRFUNC ----
+        if not np.isfinite(pos_data).all():
+            raise self.SkipCosmology(f"[RANK {self.rank_id}] pos_data contains NaN/inf")
+        if not np.isfinite(pos_random).all():
+            raise self.SkipCosmology(f"[RANK {self.rank_id}] pos_random contains NaN/inf")
+        if np.any(pos_data[2] <= 0) or np.any(pos_random[2] <= 0):
+            raise self.SkipCosmology(f"[RANK {self.rank_id}] non-positive comoving distance r encountered")
 
-        # Count total number of NaNs
-        num_nans = np.sum(nan_mask)
-        if num_nans>0:
-            print(f"[RANK {self.rank_id}] Number of bins that are empty:", num_nans)
+        # Now instantiate the TwoPointCorrelationFunction
+        try:
+            ls = TwoPointCorrelationFunction(
+                mode='smu',
+                #data
+                data_positions1=pos_data,
+                data_samples1=patch_labels_data,
+                data_weights1=weights_data,
+                #randoms
+                randoms_positions1=pos_random,
+                randoms_samples1=patch_labels_random,
+                randoms_weights1=weights_random,
+                #settings
+                bin_type='lin',          # linear bins -> faster
+                position_type='rdd',     # positions are provided as (3,N)
+                edges=self.edges,
+                #weight_type=None, #this is acting weird
+                los='midpoint',
+                estimator='landyszalay',
+                nthreads=1,
+                gpu=False
+                )
+            #actually running the estimator (including the jackknife method)
+            xi,cov=ls.get_corr(return_cov=True)
         
+
+        except RuntimeError as e:
+            # Corrfunc “ix = -2147483648” etc
+            raise self.SkipCosmology(f"pycorr/Corrfunc RuntimeError: {e}") from e
+        except Exception as e:
+            raise self.SkipCosmology(f"pycorr failed: {e}") from e
+
+        # >>> HARD GUARD: reject NaNs and DO NOT SAVE
+        num_bad = np.size(xi) - np.isfinite(xi).sum()
+        if num_bad > 0:
+            print(f"[RANK {self.rank_id}] Number of bins that are empty:", num_bad)
+            raise self.SkipCosmology(f"Correlation has {num_bad} non-finite bins")
         self.xi= xi #(ns, nmu) array
         self.cov= cov #(ns*nmu, ns*nmu) array
         # keep metadata
         self.patch_labels_data = patch_labels_data
         self.patch_labels_randoms = patch_labels_random
+
+
