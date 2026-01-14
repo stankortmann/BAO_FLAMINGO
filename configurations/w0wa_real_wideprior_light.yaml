@@ -7,8 +7,8 @@ paths:
   #only thouch these parts below!!
   simulation: L1000N1800/HYDRO_DESI_W0WA  #which simulation to use
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  results_directory: w0wa_wideprior #full path if necessary
+  snapshot_number: [59,63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  results_directory: w0wa_wideprior_light #full path if necessary
 
 monitoring:
   cpu_ram_monitor: off
@@ -30,7 +30,7 @@ filters:
 
   
   luminosity_filter: on
-  survey: lrg #bgs or lrg
+  survey: lrg_light #bgs, lrg,lrg_light or lrg_soft
 
   #bgs input, if survey=lrg we do not need any inputs
   m_r_cutoff: 21 #apparent band magnitude for the observer

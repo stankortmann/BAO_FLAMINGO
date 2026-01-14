@@ -270,6 +270,20 @@ class filtering_tools:
             
             return mask
         
+        def target_filter_lrg_light(redshift):
+            m_r=band_apparent_magnitude(z=redshift,band='r')
+            m_z=band_apparent_magnitude(z=redshift,band='z')
+            m_g=band_apparent_magnitude(z=redshift,band='g')
+            m_w1=band_apparent_magnitude(z=redshift,band='w1')
+
+            #here are all the selection criteria of the LRG survey
+            mask= (m_z-m_w1>0.8*(m_r-m_z)-0.6)
+            mask &= ((m_g-m_w1>2.9) | (m_r-m_w1>1.8))
+            mask &= ((m_r-m_w1>1.8*(m_w1-17.4)) & 
+                    ((m_r-m_w1>m_w1-16.33) | (m_r-m_w1>3.3)))
+            
+            return mask
+        
         #lower targeting with a softer cut in the last condition by 1 magnitude
         def target_filter_lrg_soft(redshift):
             m_r=band_apparent_magnitude(z=redshift,band='r')
@@ -290,6 +304,8 @@ class filtering_tools:
             m_mask=target_filter_bgs(redshift=coordinates[:,2])
         elif self.survey == 'lrg':
             m_mask=target_filter_lrg(redshift=coordinates[:,2])
+        elif self.survey == 'lrg_light':
+            m_mask=target_filter_lrg_light(redshift=coordinates[:,2])
         elif self.survey == 'lrg_soft':
             m_mask=target_filter_lrg_soft(redshift=coordinates[:,2])
             

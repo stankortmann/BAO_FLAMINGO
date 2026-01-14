@@ -11,7 +11,7 @@ import unyt as u
 s_array = np.linspace(130, 200, 30)  # Mpc (comoving)
 
 # --- Effective redshift ---
-z_eff = 0.5  # example
+z_eff = 0.9  # example
 
 # --- Initialize the BAO template ---
 
@@ -22,7 +22,7 @@ cosmo=cosmo_tools(box_size=1000*u.Unit("Mpc"),
     redshift=z_eff,
     redshift_bin_width=0.2)
 print("cosmo is set up!")
-template = template_CAMB(cosmo=cosmo, effective_redshift=z_eff, s_array=s_array, ell_list=[0,2])
+template = template_CAMB(cosmo=cosmo, effective_redshift=z_eff, s_array=s_array, ell_list=[0,2], non_linear=True)
 
 # --- Get multipoles ---
 xi_dict = template.get_multipoles()
