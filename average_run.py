@@ -121,7 +121,7 @@ if __name__ == "__main__":
                             entry["fit_status"] = False
                             mcmc_list.append(entry)
                     if name == "w0waCDM":
-                        true_pars={"para":float(plotter.para1_value)}
+                        true_pars={"para":float(plotter.para_value)}
                         
                 elif n_parameters==2 :
                     cosmo_real_para1_value=None

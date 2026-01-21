@@ -7,8 +7,8 @@ paths:
   #only thouch these parts below!!
   simulation: L1000N1800/HYDRO_FIDUCIAL
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [63,65,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  results_directory: lrg_soft #full path if necessary
+  snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  results_directory: omegam #full path if necessary
 
 monitoring:
   cpu_ram_monitor: off
@@ -30,7 +30,7 @@ filters:
 
   
   luminosity_filter: on
-  survey: lrg_soft #bgs, lrg or lrg_soft
+  survey: lrg #bgs or lrg
 
   #bgs input, if survey=lrg we do not need any inputs
   m_r_cutoff: 21 #apparent band magnitude for the observer
@@ -90,10 +90,10 @@ fiducial:
   # --- Manual MCMC settings ---
   manual_cosmo : on # enable manual cosmology grid, if off the cosmologies are selected in the above cosmologies
  #parameters to save in the output .hdf5 file 
-  parameters_to_save: [Om0,Ob0,H0,Tcmb0,Ode0]
+  parameters_to_save: [Om0,Ob0,H0,Tcmb0,Ode0,w0,wa]
 #which cosmological parameters to vary, options: Om0, Ode0, H0, w0, wa,Ob0, Onu0, Neff
-  parameters_mcmc: [Om0,Ode0] #can be either one or two parameters in a list
+  parameters_mcmc: [Om0] #can be either one or two parameters in a list
   para_1_range: [0.2,0.4] #range for variable 1
-  para_2_range: [0.6,0.8] #range for variable 2 if needed
-  points_per_para: 10 #number of points per variable, total points = points_per_para^n_variables
+  para_2_range: [] #range for variable 2 if needed
+  points_per_para: 300 #number of points per variable, total points = points_per_para^n_variables
   allow_w_crossing: on

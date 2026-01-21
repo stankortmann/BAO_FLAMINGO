@@ -329,8 +329,8 @@ class correlation_plotter:
 
 
         plt.xlabel(f"s [{self.s_data.units}]")
-        plt.ylabel("ξ_0(s)")
-        plt.title("Monopole ξ_0")
+        plt.ylabel(r"$\xi_0$")
+        plt.title(r"Monopole $\xi_2$")
         plt.legend()
         #plotting
         filename_plot=str(self.filename)
@@ -360,8 +360,8 @@ class correlation_plotter:
         self.mu_quad,self.std_quad=np.average(quad_data,weights=1/quad_data_err**2),np.std(quad_data)
         
         plt.xlabel(f"s [{self.s_data.units}]")
-        plt.ylabel("ξ_2(s)")
-        plt.title("Quadrupole ξ_2")
+        plt.ylabel(r"$\xi_2$")
+        plt.title(r"Quadrupole $\xi_2$")
         plt.legend()
         #plotting
         filename_plot=str(self.filename)
@@ -526,19 +526,40 @@ class posterior_plotter:
         else:
             self.likelihood = np.array(self.provided_likelihoods)
         posterior = self._posterior()
-        sort = np.argsort(self.para)
+        sort = np.argsort(self.p_vals)
 
         plt.figure(figsize=(8,6))
-        plt.plot(self.para[sort], posterior[sort], "-o")
+        plt.scatter(self.p_vals[sort], posterior[sort])
+        def corner_style_1sigma_discrete(x, pmass):
+            """
+            corner-style q16/q50/q84 from a discretized posterior (probability mass per grid point).
+            """
+            x = np.asarray(x)
+            pmass = np.asarray(pmass)
+
+            s = np.argsort(x)
+            x = x[s]
+            pmass = pmass[s]
+
+            pmass = pmass / pmass.sum()
+            cdf = np.cumsum(pmass)
+
+            # 16%, 50%, 84% (~1σ interval)
+            qs = [0.15865525393145707, 0.5, 0.8413447460685429]
+            q16, q50, q84 = np.interp(qs, cdf, x)
+            lower = np.abs(q50 - q16)
+            upper = np.abs(q84 - q50)
+            return float(lower), float(q50), float(upper)
         if self.true_pars is not None:
             plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
 
         plt.xlabel(self.para_name)
-        plt.ylabel("Posterior")
-        if self.provided_likelihoods is not None:
+        
+        if self.provided_likelihoods is None:
             plt.title(f"Redshift {self.redshift:.2f} – 1D Posterior")
-        else:
-            plt.title("Combined 1D Posterior")
+        if self.provided_likelihoods is not None:
+            minus,m,plus = corner_style_1sigma_discrete(self.p_vals, posterior)
+            plt.title(rf"{self.para_name} = {m:.2g}_{{-{minus:.2g}}}^{{+{plus:.2g}}}")
         
         plt.savefig(os.path.join(self.outdir, "a-posterior_1d.png"), dpi=300)
         plt.close()

@@ -72,7 +72,7 @@ class cosmo_tools:
             self.wa=0.0
             self.wa= update.get("wa",self.wa)
         #check for w crossing -1
-        if self.w0 != -1.0 and self.wa != 0.0:
+        if self.w0 != -1.0 or self.wa != 0.0:
             
             self.check_w_crossing()
 
@@ -158,11 +158,12 @@ class cosmo_tools:
             self.w_crossing=False
         else:
             self.w_crossing=True
+    
     def E(self, z):
         """Dimensionless Hubble parameter E(z) = H(z)/H0."""
         
         # dynamical dark energy evolution
-        if self.w0 != -1.0 and self.wa != 0.0:
+        if self.w0 != -1.0 or self.wa != 0.0:
             Odez = self.Ode0 * (1 + z)**(3 * (1 + self.w0 + self.wa)) * \
             np.exp(-3 * self.wa * z / (1 + z))
         #non-dynamical dark energy (w=-1)

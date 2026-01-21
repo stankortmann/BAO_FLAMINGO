@@ -7,7 +7,7 @@ paths:
   #only thouch these parts below!!
   simulation: L1000N1800/HYDRO_PLANCK #which simulation to use
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
-  snapshot_number: [59,63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
+  snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
   results_directory: w0wa_new #full path if necessary
 
 monitoring:

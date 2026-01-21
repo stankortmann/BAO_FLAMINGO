@@ -58,7 +58,7 @@ class template_CAMB:
                                 TCMB=self.Tcmb, nnu=self.Neff)
 
         #pretty standard and well established parameters
-        self.pars.InitPower.set_params(As=2e-9, ns=0.965)
+        self.pars.InitPower.set_params(As=2.09937e-09, ns=0.965)
 
         # --- Dark energy setup if dynamical---
         if self.w0 !=-1:
@@ -75,6 +75,7 @@ class template_CAMB:
     def _get_powerspectrum(self):
         # Get linear matter power spectrum
         kh, z, pk = self.results.get_matter_power_spectrum(minkh=1e-4, maxkh=10, npoints=500)
+        
         self.kh = kh      # h/Mpc
         self.pk = pk[0]   # at z=z_eff
 
