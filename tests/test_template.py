@@ -1,5 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams.update({
+    "font.size": 16,          # base font size
+    "axes.titlesize": 18,     # title
+    "axes.labelsize": 18,     # x/y labels
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "legend.fontsize": 16,
+    "figure.titlesize": 18
+})
 from colossus.cosmology import cosmology as cosmo_fiducial
 from mcfit import P2xi
 
@@ -32,7 +41,7 @@ k_sim_log = np.logspace(np.log10(k_sim_lin.min()),
 pk_sim_log = np.interp(k_sim_log, k_sim_lin, pk_sim_lin)
 
 # --- Effective redshift ---
-z_eff = 100  # example
+z_eff = 0.5  # example
 
 # --- Initialize the BAO template ---
 

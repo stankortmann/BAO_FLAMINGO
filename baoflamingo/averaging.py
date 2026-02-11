@@ -54,7 +54,7 @@ class xi_cov_averager:
     # ---------------------------------------------------------
     def _process_group(self, filename, filepaths):
         xis, covs = [], []
-        vol_fracs, densities = [], []
+        vol_fracs, area_densities, survey_areas = [], [], []
         meta = None
 
         for i, fp in enumerate(filepaths):
@@ -63,7 +63,8 @@ class xi_cov_averager:
                 covs.append(f["cov"][()])
 
                 vol_fracs.append(f["survey_total_volume_percent"][()] / 100.0)
-                densities.append(f["survey_density"][()])
+                area_densities.append(f["survey_density"][()])
+                survey_areas.append(f["survey_area"][()])
 
                 if i == 0:
                     meta = self._copy_metadata(f)
@@ -71,13 +72,15 @@ class xi_cov_averager:
         xis = np.array(xis)          # (N, Ns, Nmu)
         covs = np.array(covs)        # (N, Ns*Nmu, Ns*Nmu)
         vol_fracs = np.array(vol_fracs)
-        densities = np.array(densities)
+        area_densities = np.array(area_densities)
+        survey_areas = np.array(survey_areas)
+        n_galaxies= area_densities * survey_areas
 
         # -------------------------------------------------
         # WEIGHTS
         # -------------------------------------------------
         if self.use_volume_density_weights:
-            raw_w = vol_fracs * densities
+            raw_w = vol_fracs * n_galaxies
             w = raw_w / np.sum(raw_w)
         else:
             w = np.ones(len(filepaths)) / len(filepaths)
@@ -102,23 +105,23 @@ class xi_cov_averager:
         # -------------------------------------------------
         n_runs_used = len(filepaths)
 
-        # proportional galaxy counts per slice
-        N_i = densities * vol_fracs
+        
 
-        # effective volume (fraction of box)
+        # effective area and volume fraction
         V_eff = np.sum(w * vol_fracs)
+        A_eff = np.sum(w * survey_areas)
 
         # Kish effective number of galaxies
-        N_eff = (np.sum(w * N_i))**2 / np.sum(w**2 * N_i)
+        N_eff = (np.sum(w * n_galaxies))**2 / np.sum(w**2 * n_galaxies)
 
-        # effective density
-        density_eff = N_eff / V_eff
+        # effective area density
+        density_eff = N_eff / A_eff
 
         stats = {
             "n_runs_used": n_runs_used,
             "effective_volume_fraction": V_eff,
             "effective_n_galaxies": N_eff,
-            "effective_density": density_eff,
+            "effective_area_density": density_eff,
         }
 
         return xi_avg, cov_avg, meta, stats

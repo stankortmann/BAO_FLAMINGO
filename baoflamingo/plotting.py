@@ -1,5 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams.update({
+    "font.size": 16,          # base font size
+    "axes.titlesize": 18,     # title
+    "axes.labelsize": 18,     # x/y labels
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "legend.fontsize": 16,
+    "figure.titlesize": 18
+})
 import unyt as u
 import h5py
 from scipy.interpolate import UnivariateSpline
@@ -330,7 +339,7 @@ class correlation_plotter:
 
         plt.xlabel(f"s [{self.s_data.units}]")
         plt.ylabel(r"$\xi_0$")
-        plt.title(r"Monopole $\xi_2$")
+        plt.title(r"Monopole $\xi_0$")
         plt.legend()
         #plotting
         filename_plot=str(self.filename)
@@ -551,15 +560,19 @@ class posterior_plotter:
             upper = np.abs(q84 - q50)
             return float(lower), float(q50), float(upper)
         if self.true_pars is not None:
-            plt.axvline(self.true_pars["para"], color="black", ls="--", lw=0.5)
+            plt.axvline(self.true_pars["para"], color="black", ls="--", lw=1)
+            #LambdaCDM wa true value in case of waCDM
+            if self.true_pars["para"] != 0.0:
+                plt.axvline(0, color="red", ls="--", lw=1)
 
         plt.xlabel(self.para_name)
         
         if self.provided_likelihoods is None:
-            plt.title(f"Redshift {self.redshift:.2f} – 1D Posterior")
+            minus,m,plus = corner_style_1sigma_discrete(self.p_vals, posterior)
+            plt.title(rf"Redshift {self.redshift:.2f} – 1D Posterior, ${self.para_name} = {m:.2g}_{{-{minus:.2g}}}^{{+{plus:.2g}}}$")
         if self.provided_likelihoods is not None:
             minus,m,plus = corner_style_1sigma_discrete(self.p_vals, posterior)
-            plt.title(rf"{self.para_name} = {m:.2g}_{{-{minus:.2g}}}^{{+{plus:.2g}}}")
+            plt.title(rf"Combined 1D Posterior, ${self.para_name} = {m:.2g}_{{-{minus:.2g}}}^{{+{plus:.2g}}}$")
         
         plt.savefig(os.path.join(self.outdir, "a-posterior_1d.png"), dpi=300)
         plt.close()
@@ -593,8 +606,8 @@ class posterior_plotter:
             plt.colorbar(sc, label=r"$\alpha - 1$")
 
             if self.true_pars is not None:
-                plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
-                plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
+                plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=1)
+                plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=1)
                 plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
                             s=160, color="black", marker="x")
 
@@ -617,8 +630,8 @@ class posterior_plotter:
             plt.colorbar(sc, label=r"Quadrupole $\xi_2$")
 
             if self.true_pars is not None:
-                plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=0.5)
-                plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=0.5)
+                plt.axvline(self.true_pars["para1"], color="black", ls="--", lw=1)
+                plt.axhline(self.true_pars["para2"], color="black", ls="--", lw=1)
                 plt.scatter(self.true_pars["para1"], self.true_pars["para2"],
                             s=160, color="black", marker="x")
 
@@ -711,6 +724,10 @@ class posterior_plotter:
             )
 
         fig = corner.corner(**corner_kwargs)
+        if [self.true_pars["para1"], self.true_pars["para2"]] != [-1.0, 0.0]:
+            corner.overplot_lines(fig, np.array([[-1.0], [0.0]]), color="blue",lw=2)
+            corner.overplot_points(fig, np.array([[-1.0, 0.0]]), color="blue",
+            marker = "s",  markerfacecolor="blue",markersize = 4, markeredgewidth = 2)
 
         fig.savefig(os.path.join(self.outdir,"a-corner_posterior.png"), dpi=300)
 

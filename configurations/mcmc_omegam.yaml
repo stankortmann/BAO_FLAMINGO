@@ -8,7 +8,7 @@ paths:
   simulation: L1000N1800/HYDRO_FIDUCIAL
   #we might wanna get the snapshotnumber outside of the config.yaml file to automate further!
   snapshot_number: [63,67] #for numbers below 10: fill in 06 or 07, not 6 and 7
-  results_directory: omegam #full path if necessary
+  results_directory: omegam_retry #full path if necessary
 
 monitoring:
   cpu_ram_monitor: off

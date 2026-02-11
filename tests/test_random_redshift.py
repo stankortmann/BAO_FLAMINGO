@@ -44,13 +44,15 @@ z_rand, z_grid, n_z = coordinate_tools.random_redshifts_from_data_cdf(
 
 # --- Plot results ---
 plt.figure(figsize=(7, 5))
-plt.hist(z_data, bins=40, density=True, histtype='step', lw=2, label='Data n(z)')
+plt.hist(z_data, bins=40, density=True, histtype='step', lw=2, label='Data')
 plt.plot(z_grid, n_z, 'r-', lw=2, label='Smoothed PDF')
-plt.hist(z_rand, bins=40, density=True, histtype='step', lw=2, label='Random n(z)')
-plt.xlabel('Redshift z')
+plt.hist(z_rand, bins=40, density=True, histtype='step', lw=2, label='Random')
+plt.xlabel('z')
+plt.xticks(np.arange(0.45,0.55, 0.02))
 plt.ylabel('Normalized n(z)')
+
 plt.legend()
-plt.title("n(z) test")
+plt.title("Redshift Distribution: Data vs Random")
 
 # Save plot
 plt.tight_layout()

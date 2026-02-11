@@ -216,10 +216,19 @@ def run_pipeline_single(cfg,mpi_comm,mpi_rank,mpi_size):
             if n_params == 1:
                 p1_name = cfg.fiducial.parameters_mcmc[0]
                 for p1 in np.linspace(*cfg.fiducial.para_1_range, cfg.fiducial.points_per_para):
-                    param_dicts.append({
-                        p1_name: p1,
-                        "name": f"{p1_name}_{p1:.4f}"
-                    })
+                    if p1_name == "Om0":
+                        #ensure flatness in 1d Omega_m variation!! Can be changed later if needed
+                        Ode0_flatness = cosmo_real.Ode0 + (cosmo_real.Om0 - p1)
+                        param_dicts.append({
+                            p1_name: p1,
+                            "Ode0": Ode0_flatness,
+                            "name": f"{p1_name}_{p1:.4f}"
+                        })
+                    else:
+                        param_dicts.append({
+                            p1_name: p1,
+                            "name": f"{p1_name}_{p1:.4f}",   
+                        })
 
             elif n_params == 2:
                 p1_name, p2_name = cfg.fiducial.parameters_mcmc
