@@ -183,7 +183,7 @@ The SLURM scripts assume:
 
 - Working directory:
 
-      /cosma/home/do012/dc-kort1/BAO
+      /cosma/home/<project>/<user>/BAO
 
 ---
 
