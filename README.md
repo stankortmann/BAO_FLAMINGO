@@ -80,10 +80,16 @@ Further investigation is ongoing.
 ## Dependencies
 
 - Python 3.x  
-- NumPy  
-- SciPy  
-- Astropy  
-- Matplotlib  
+- numpy>=1.27
+- treecorr
+- unyt
+- swiftsimio
+- psutil
+- numba
+- matplotlib
+- scipy
+- PyYAML
+  
 
 Optional:
 - Corrfunc (for faster pair counting)  
@@ -94,11 +100,11 @@ Optional:
 ## How to Run
 
 1. Clone the repository:
-   git clone https://github.com/yourusername/bao-desi.git  
-   cd bao-desi   
+   git clone https://github.com/stankortmann/BAO_FLAMINGO.git  
+   cd BAO   
 
-2. Run the main pipeline:
-   python run_pipeline.py  
+2. Run the main pipeline with a configuration file:
+   python run_pipeline.py  --config configurations/configuration.yaml
 
 ---
 
@@ -110,7 +116,7 @@ BAO measurements provide one of the cleanest probes of dark energy. This project
 - Quantify cosmology-dependent biases  
 - Explore dynamical dark energy effects  
 
-The work is connected to DESI and large-volume N-body simulations such as AbacusSummit.
+
 
 ---
 
