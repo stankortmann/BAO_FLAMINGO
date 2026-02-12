@@ -89,22 +89,126 @@ Further investigation is ongoing.
 - matplotlib
 - scipy
 - PyYAML
+- Corrfunc (for faster pair counting)
   
 
-Optional:
-- Corrfunc (for faster pair counting)  
-- emcee (for MCMC fitting)
 
 ---
 
-## How to Run
+## How to Run (COSMA Cluster)
 
-1. Clone the repository:
-   git clone https://github.com/stankortmann/BAO_FLAMINGO.git  
-   cd BAO   
+The pipeline is designed to run on the COSMA HPC cluster using SLURM job submission.  
+All simulation inputs, cosmological parameters, and output directories are defined in the YAML configuration file.
 
-2. Run the main pipeline with a configuration file:
-   python run_pipeline.py  --config configurations/configuration.yaml
+Example configuration file:
+
+    configurations/w0wa_real.yaml
+
+This file controls:
+
+- Input simulation path  
+- Cosmological parameters (Ω_m, Ω_de, w0, wa, etc.)  
+- Redshift ranges  
+- Output directory for plots and data products  
+- Analysis settings  
+
+Always verify the configuration file before submitting jobs.
+
+---
+
+## Step 1 — Run BAO Realisations (MPI + SLURM Array)
+
+The main computation (pair counting + BAO fitting per realization) is executed as a SLURM job array.
+
+Submit:
+
+    sbatch run_w0wa.sh
+
+This script:
+
+- Launches a SLURM job array (`--array=0-9`)
+- Exports `REALIZATION_ID` from `SLURM_ARRAY_TASK_ID`
+- Runs 101 MPI tasks on a single node
+- Executes:
+
+    mpirun -np $SLURM_NTASKS python -u main.py --config configurations/w0wa_real.yaml
+
+Each array index corresponds to one independent realization.
+
+Log files are written to:
+
+    logs_w0wa_<jobID>/run_<arrayID>.out
+    logs_w0wa_<jobID>/run_<arrayID>.err
+
+All numerical outputs and plots are written to the directory specified in the config file (`output_dir`).
+
+---
+
+## Step 2 — Average the Realisations
+
+After all realizations have successfully completed, run the averaging stage:
+
+    sbatch run_averaging.sh
+
+This executes:
+
+    python average_run.py --config configurations/w0wa_real.yaml
+
+The averaging script:
+
+- Reads all realization outputs from the configured output directory  
+- Computes the mean correlation function  
+- Produces final averaged BAO measurements  
+- Generates the final plots  
+
+Logs are written to:
+
+    logs_averaging_real_<jobID>/
+
+---
+
+## Environment Setup (COSMA)
+
+The SLURM scripts assume:
+
+- Virtual environment:
+
+      ~/my_env/
+
+- Required modules:
+
+      module purge
+      module load gnu_comp/13.1.0
+      module load openmpi/4.1.4
+
+- Working directory:
+
+      /cosma/home/do012/dc-kort1/BAO
+
+---
+
+## Full Workflow Summary
+
+1. Configure simulation input, cosmology, and output directory in:
+   
+       configurations/w0wa_real.yaml
+
+2. Submit MPI job array:
+   
+       sbatch run_w0wa.sh
+
+3. Wait for all realizations to finish.
+
+4. Submit averaging job:
+   
+       sbatch run_averaging.sh
+
+5. Retrieve final plots and data products from the output directory specified in the configuration file.
+
+---
+
+This two-stage workflow separates computationally intensive clustering measurements from the final statistical aggregation, allowing scalable production of BAO constraints across multiple cosmological models.
+
 
 ---
 
